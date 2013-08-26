@@ -12,6 +12,8 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Difficulty;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.WorldType;
@@ -21,6 +23,7 @@ import org.bukkit.entity.Arrow;
 import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
@@ -687,5 +690,81 @@ public class StubWorld implements World {
 	@Override
 	public String toString() {
 		return getName();
+	}
+
+	@Override
+	public boolean createExplosion(double x, double y, double z, float power,
+			boolean setFire, boolean breakBlocks) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int getAmbientSpawnLimit() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public String getGameRuleValue(String rule) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String[] getGameRules() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isChunkInUse(int x, int z) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isGameRule(String rule) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void playSound(Location location, Sound sound, float volume,
+			float pitch) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setAmbientSpawnLimit(int limit) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean setGameRuleValue(String rule, String value) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Entity spawnEntity(Location loc, EntityType type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public FallingBlock spawnFallingBlock(Location location, Material material,
+			byte data) throws IllegalArgumentException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public FallingBlock spawnFallingBlock(Location location, int blockId,
+			byte blockData) throws IllegalArgumentException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
