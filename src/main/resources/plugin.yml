@@ -1,0 +1,4 @@
+name: Earthcraft
+main: us.bliven.bukkit.earthcraft.EarthcraftPlugin
+version: 0.1
+load: STARTUP
