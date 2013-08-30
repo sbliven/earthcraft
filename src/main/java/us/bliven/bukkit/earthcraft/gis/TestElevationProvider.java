@@ -39,6 +39,7 @@ public class TestElevationProvider implements ElevationProvider {
 	}
 
 
+	
 	@Override
 	public List<Double> fetchElevations(List<Coordinate> l) throws DataUnavailableException {
 		//System.out.println("Cache miss! Requesting "+l);
@@ -64,7 +65,30 @@ public class TestElevationProvider implements ElevationProvider {
 		return elevations;
 	}
 	
+	@Override
+	public Double fetchElevation(Coordinate c) throws DataUnavailableException {
+		//System.out.println("Cache miss! Requesting "+l);
+		requestsMade++;
+
+		double latfrac = (c.x-south)/(north-south);
+		double lonfrac = (c.y-west)/(east-west);
+
+		double elev;
+		// outside the box, return random values
+		if(0>latfrac || latfrac>1 || 0>lonfrac || lonfrac>1) {
+			elev = Math.random()*(maxElev-minElev)+minElev;
+		} else {
+			if(latfrac<.05)
+				elev = minElev;
+			else
+				elev = (latfrac+lonfrac)/2*(maxElev-minElev)+minElev;
+		}
+		return elev;
+	}
+
 	public int getRequestsMade() {
 		return requestsMade;
 	}
+
+
 }

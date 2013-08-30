@@ -1,51 +1,20 @@
 package us.bliven.bukkit.earthcraft;
 
-import java.io.File;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 
-import org.bukkit.BlockChangeDelegate;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.ChunkSnapshot;
-import org.bukkit.Difficulty;
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.TreeType;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
-import org.bukkit.WorldType;
-import org.bukkit.World.Environment;
-import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Arrow;
-import org.bukkit.entity.CreatureType;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.LightningStrike;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.MetadataValue;
-import org.bukkit.plugin.InvalidDescriptionException;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.util.Vector;
-
-import com.vividsolutions.jts.geom.Coordinate;
 
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
+
+import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * Generates real-world maps
@@ -54,12 +23,13 @@ import us.bliven.bukkit.earthcraft.gis.MapProjection;
 public class EarthGen extends ChunkGenerator {
 	private MapProjection projection;
 	private ElevationProvider elevation;
+	private Coordinate spawn;
 	
-	public EarthGen(MapProjection projection, ElevationProvider elevation) {
+	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
 		this.projection = projection;
 		this.elevation = elevation;
-		
+		this.spawn = spawn;
 	}
 	
 	
@@ -129,14 +99,15 @@ public class EarthGen extends ChunkGenerator {
 				}
 			}
 			
-			// translate elevation to blocks
-			root = projection.coordinateToLocation(world, coord);
-			height = (int) Math.floor(root.getY()+1);
-			
-			if(height>world.getMaxHeight()) height = world.getMaxHeight();
 		} catch (DataUnavailableException e) {
-			e.printStackTrace();
+			System.out.println("Data unavailable at "+worldx+","+worldz);
+			coord.z = 1; //default to just above sea level
 		}
+		// translate elevation to blocks
+		root = projection.coordinateToLocation(world, coord);
+		height = (int) Math.floor(root.getY()+1);
+		
+		if(height>world.getMaxHeight()) height = world.getMaxHeight();
 //		return (int)(Math.random()*20);
 		return height;
 	}
@@ -145,8 +116,14 @@ public class EarthGen extends ChunkGenerator {
 
 	@Override
 	public Location getFixedSpawnLocation(World world, Random random) {
-		Location spawn = new Location(world, 0, 64, 0);
-		return spawn;
+		Double elev;
+		try {
+			elev = elevation.fetchElevation(spawn);
+		} catch (DataUnavailableException e) {
+			elev = 1.;//1 m above sea level
+		}
+		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,elev,spawn.z));
+		return spawnloc;
 	}
 	
 	

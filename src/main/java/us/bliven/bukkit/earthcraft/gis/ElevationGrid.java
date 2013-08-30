@@ -9,6 +9,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.measure.Measure;
+import javax.measure.quantity.Length;
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+import javax.measure.unit.Unit;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -20,29 +25,36 @@ import com.vividsolutions.jts.geom.Coordinate;
 public class ElevationGrid {
 	public static void main(String[] a) {
 		ElevationProvider elevationProvider, elevationCache;
-		double south = 32.73;
-		double west = -117.26;
-		double north = 32.80;
-		double east = -117.20;
-		double latRes = .5/3600;
+//		double south = 32.73;
+//		double west = -117.26;
+//		double north = 32.80;
+//		double east = -117.20;
+		double south = 32.65;
+		double west = -117.25;
+		double north = 32.75;
+		double east = -117.15;
+		Unit<Length> degLat = NonSI.NAUTICAL_MILE.times(60); //Nautical_mile = 1 arcminute
+		double latRes = Measure.valueOf(10.0, SI.METER).doubleValue(degLat);
 		double lonRes = latRes;
+		System.out.format("Area %f deg^2 at %f res = %d points%n",
+				(north-south)*(east-west), latRes,
+				((int)((north-south)/latRes))*((int)((east-west)/lonRes)));
 		//double latRes = (north-south)/60.;
 		//double lonRes = (east-west)/100.;
 		
-		OpenElevationConnector oec = new OpenElevationConnector();
-		elevationProvider = oec;
+		//OpenElevationConnector oec = new OpenElevationConnector();
+		//elevationProvider = oec;
 		//elevationProvider = new ElevationProviderStub(south+10*latRes,north-10*latRes, west+10*lonRes,east-10*lonRes,0.,255.);
-		String dir = System.getProperty("java.io.tmpdir") + "SRTMPlus";
-		// Create base directory if it doesn't exist
-		File dirFile = new File(dir);
-		if(!dirFile.exists()) {
-			dirFile.mkdir();
+		
+		String dir = "/Users/blivens/dev/minecraft/srtm";
+		if(! (new File(dir)).exists()) {
+			dir = System.getProperty("java.io.tmpdir") + "SRTMPlus";
 		}
-		
 		elevationProvider = new SRTMPlusElevationProvider(dir);
-		elevationCache = new InterpolatingElevationCache(elevationProvider, new Coordinate(latRes*16,lonRes*16));
 		
-		Double[][] elevations = elevationGrid(elevationCache, south,north,west,east, latRes, lonRes);
+		elevationCache = new InterpolatingElevationCache(elevationProvider, new Coordinate(latRes,lonRes));
+		
+		Double[][] elevations = elevationGrid(elevationCache, south,north,west,east, latRes/2, lonRes/2);
 
 		/*
 		Double[][] elevations = new Double[xpoints][ypoints];
@@ -62,7 +74,7 @@ public class ElevationGrid {
 			System.out.println();
 		}
 		*/
-		System.out.println("Made "+oec.getRequestsMade()+" API calls.");
+		//System.out.println("Made "+oec.getRequestsMade()+" API calls.");
 	}
 
 	private static void displayImage(final BufferedImage image) {

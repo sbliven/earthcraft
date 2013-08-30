@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.commons.collections15.map.LRUMap;
 
+import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
 
 
@@ -41,6 +42,11 @@ public class InterpolatingElevationCache implements ElevationProvider {
 		this(provider, new Coordinate(0.,0.),gridScale);
 	}
 
+	@Override
+	public Double fetchElevation(Coordinate query) throws DataUnavailableException{
+		List<Double> q = fetchElevations(Lists.asList(query,new Coordinate[0]));
+		return q.get(0);
+	}
 	
 	@Override
 	public List<Double> fetchElevations(List<Coordinate> queries) throws DataUnavailableException {

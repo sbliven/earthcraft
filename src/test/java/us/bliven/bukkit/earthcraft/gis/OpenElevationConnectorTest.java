@@ -36,7 +36,7 @@ public class OpenElevationConnectorTest {
 
 		// Mt. Everest
 		latlong.add(new Coordinate(27.98806, 86.92528));
-		elevations.add(-32768.0); // response code for missing data?
+		elevations.add(null); // -32768.0 response code for missing data?
 
 		// South pole
 		latlong.add(new Coordinate(-89, 0));

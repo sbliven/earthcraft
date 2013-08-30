@@ -23,4 +23,6 @@ public interface ElevationProvider {
 	 * @throws  
 	 */
 	public List<Double> fetchElevations(List<Coordinate> l) throws DataUnavailableException;
+	
+	public Double fetchElevation(Coordinate c) throws DataUnavailableException;
 }

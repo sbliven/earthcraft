@@ -306,6 +306,7 @@ public class FileCache {
 
 	    @Override
 	    public Response call() throws IOException {
+	    	long startTime = System.currentTimeMillis();
 			BufferedInputStream in = new BufferedInputStream(url.openStream());
 			FileOutputStream out = new FileOutputStream(file);
 			
@@ -317,6 +318,9 @@ public class FileCache {
 			out.close();
 			in.close();
 
+			System.out.println(String.format("Downloaded %s. Took %.2f sec%n", 
+					file.toString(), (System.currentTimeMillis()-startTime)/1000.));
+			
 	        return new Response(file.toString());
 	    }
 	}

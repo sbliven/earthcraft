@@ -7,6 +7,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -35,6 +39,17 @@ public class OpenElevationConnector implements ElevationProvider {
 
 	private int requestsMade = 0; //Number of API calls made by this instance
 	
+	// Infrastructure for regular updates
+	private OpenElevationMonitor monitor = new OpenElevationMonitor();
+	private ScheduledExecutorService executor = null;
+	private ScheduledFuture<?> monitorHandle = null;
+	
+	@Override
+	public Double fetchElevation(Coordinate query) throws DataUnavailableException{
+		List<Double> q = fetchElevations(Lists.asList(query,new Coordinate[0]));
+		return q.get(0);
+	}
+	
 	@Override
 	public List<Double> fetchElevations(List<Coordinate> l) throws DataUnavailableException {
 		final int inputSize = l.size();
@@ -58,11 +73,10 @@ public class OpenElevationConnector implements ElevationProvider {
 		try {
 			url = new URL(uri.toString());
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			return null;
+			throw new DataUnavailableException("Error constructing URL: "+uri.toString(),e);
 		}
 		
-		System.out.println(url);
+		//System.out.println(url);
 		
 		// Create SAX parser for the XML
 		
@@ -235,6 +249,46 @@ public class OpenElevationConnector implements ElevationProvider {
 	 */
 	public int getRequestsMade() {
 		return requestsMade;
+	}
+
+	public void monitor() {
+		if( executor == null)
+			executor = Executors.newScheduledThreadPool(1);
+		if( monitorHandle == null)
+			monitorHandle = executor.scheduleAtFixedRate(monitor, 1, 5, TimeUnit.SECONDS);
+	}
+	public void stopMonitor() {
+		monitorHandle.cancel(false);
+	}
+	@Override
+	public void finalize() {
+		executor.shutdownNow();
+		executor = null;
+	}
+	
+	private class OpenElevationMonitor implements Runnable {
+		private long lastCheck;
+		private int lastRequests;
+		
+		public OpenElevationMonitor() {
+			this.lastRequests = 0;
+			this.lastCheck = System.currentTimeMillis();
+		}
+		
+		@Override
+		public void run() {
+			long currTime = System.currentTimeMillis();
+			int currRequests = getRequestsMade();
+			if( currRequests > lastRequests ) {
+				// Requests were made
+				System.out.println(String.format("Made %d requests in last %.2f sec.%n",
+						currRequests-lastRequests,
+						(currTime-lastCheck)/1000. ));
+			}
+			
+			lastCheck = currTime;
+			lastRequests = currRequests;
+		}
 	}
 
 }

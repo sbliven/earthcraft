@@ -4,7 +4,7 @@
 
 	<groupId>us.bliven.bukkit</groupId>
 	<artifactId>earthcraft</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>earthcraft</name>
@@ -13,15 +13,13 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<geotools.version>8.4</geotools.version>
+		<geotools.version>10-RC1</geotools.version>
 		<maven.jar.manifest.classpath.add>true</maven.jar.manifest.classpath.add>
 	</properties>
 
 	<dependencies>
-		<!--
-			Generics implementation of LRUMap. Binary compatible with
-			commons-collections 3, but likely not 4+.
-		-->
+		<!-- Generics implementation of LRUMap. Binary compatible with commons-collections
+			3, but likely not 4+. -->
 		<dependency>
 			<groupId>net.sourceforge.collections</groupId>
 			<artifactId>collections-generic</artifactId>
@@ -56,35 +54,40 @@
 			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-shapefile</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-swing</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-epsg-hsql</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-geotiff</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-image</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-wms</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-shapefile</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-swing</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-epsg-hsql</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-geotiff</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-image</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-wms</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.media</groupId>
+			<artifactId>jai_imageio</artifactId>
+			<version>1.1</version>
+		</dependency>
 	</dependencies>
 
 	<repositories>
@@ -98,39 +101,40 @@
 			<name>Open Source Geospatial Foundation Repository</name>
 			<url>http://download.osgeo.org/webdav/geotools/</url>
 		</repository>
-
+		<repository>
+			<id>bukkit-repo</id>
+			<url>http://repo.bukkit.org/content/groups/public/</url>
+		</repository>
 	</repositories>
 
 
 	<build>
-		<!--
-			<resources> <resource>
-			<directory>src/main/resources/META-INF</directory>
-			<targetPath>META-INF</targetPath> <includes>
-			<include>MANIFEST.MF</include> </includes> </resource> </resources>
-		-->
 		<plugins>
-			<!--
-
-				<plugin> <groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId> <configuration> <archive>
-
-				<manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-
-				<manifest>
-				<mainClass>us.bliven.bukkit.earthcraft.EarthcraftPlugin</mainClass>
-				<addClasspath>true</addClasspath>
-				<classpathPrefix>lib/</classpathPrefix> </manifest> </archive>
-				</configuration> </plugin>
-			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>us.bliven.bukkit.earthcraft.EarthcraftPlugin</mainClass>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
 						</manifest>
+						<manifestEntries>
+							<Specification-Vendor>Spencer Bliven</Specification-Vendor>
+							<Implementation-Vendor>Spencer Bliven</Implementation-Vendor>
+						</manifestEntries>
+
 					</archive>
 				</configuration>
 				<executions>
@@ -140,16 +144,9 @@
 						<goals>
 							<goal>single</goal>
 						</goals>
-						<configuration>
-							<descriptorRefs>
-								<descriptorRef>jar-with-dependencies</descriptorRef>
-							</descriptorRefs>
-						</configuration>
 					</execution>
 				</executions>
-
 			</plugin>
-
 		</plugins>
 	</build>
 </project>
