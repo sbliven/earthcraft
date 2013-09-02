@@ -83,11 +83,6 @@
 			<artifactId>gt-wms</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>javax.media</groupId>
-			<artifactId>jai_imageio</artifactId>
-			<version>1.1</version>
-		</dependency>
 	</dependencies>
 
 	<repositories>
@@ -113,6 +108,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -120,30 +116,38 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<archive>
-						<manifest>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-						</manifest>
-						<manifestEntries>
-							<Specification-Vendor>Spencer Bliven</Specification-Vendor>
-							<Implementation-Vendor>Spencer Bliven</Implementation-Vendor>
-						</manifestEntries>
-
-					</archive>
-				</configuration>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>1.3.1</version>
 				<executions>
 					<execution>
-						<id>create-my-bundle</id>
 						<phase>package</phase>
 						<goals>
-							<goal>single</goal>
+							<goal>shade</goal>
 						</goals>
+						<configuration>
+							<minimizeJar>true</minimizeJar>
+							<artifactSet>
+							<excludes>
+							     <exclude>junit:junit</exclude>
+							</excludes>
+							</artifactSet>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+ 										<Specification-Vendor>Spencer Bliven</Specification-Vendor>
+										<Implementation-Vendor>Spencer Bliven</Implementation-Vendor>
+										<Specification-Version>${project.version}</Specification-Version>
+										<Implementation-Version>${project.version}</Implementation-Version>
+										<Specification-Title>${project.name}</Specification-Title>
+										<Implementation-Title>${project.name}</Implementation-Title>
+									</manifestEntries>
+								</transformer>
+								<!-- This bit merges the various GeoTools META-INF/services files -->
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+							</transformers>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

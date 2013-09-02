@@ -1,15 +1,27 @@
 package us.bliven.bukkit.earthcraft;
 
+import java.awt.RenderingHints;
+import java.awt.image.renderable.ParameterBlock;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.media.jai.JAI;
+import javax.media.jai.OperationRegistry;
+import javax.media.jai.RenderedOp;
+
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
+import org.geotools.gce.gtopo30.GTopo30Reader;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
@@ -20,6 +32,9 @@ import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 
+import com.sun.media.imageioimpl.common.PackageUtil;
+import com.sun.media.imageioimpl.plugins.raw.RawImageReaderSpi;
+import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class EarthcraftPlugin extends JavaPlugin {
@@ -29,12 +44,15 @@ public class EarthcraftPlugin extends JavaPlugin {
 	private ConfigManager config;
     @Override
 	public void onEnable(){
+
         //log = this.getLogger();
         log = this.getLogger();//Logger.getLogger("us.bliven.bukkit.earthcraft.EarthcraftPlugin");
         log.setLevel(Level.ALL);
 
         log.info("Earthcraft enabled.");
         log.info("CLASSPATH="+System.getProperty("java.class.path"));
+
+        initJAI();
 
         // Create default config file if none exists
         saveDefaultConfig();
@@ -46,7 +64,8 @@ public class EarthcraftPlugin extends JavaPlugin {
 
     private void logDebugInfo() {
         // Test packaging
-//		Class<IIOServiceProvider> klass = javax.imageio.spi.IIOServiceProvider.class;
+//		Class<PackageUtil> klass = PackageUtil.class;//javax.imageio.spi.IIOServiceProvider.class;
+		Class<JAI> klass = JAI.class;//javax.imageio.spi.IIOServiceProvider.class;
 //		CodeSource src = klass.getProtectionDomain().getCodeSource();
 //		if (src != null) {
 //			URL jar = src.getLocation();
@@ -54,18 +73,18 @@ public class EarthcraftPlugin extends JavaPlugin {
 //		} else {
 //			log.info("No class location.");
 //		}
-//
-//		URL location = klass.getResource('/'+klass.getName().replace('.', '/')+".class");
-//		log.info("Jar location: "+location);
-//
-//        log.info("Trying to make RawImageReaderSpi");
-//        log.info("Vendor: "+PackageUtil.getVendor());
-//        try {
-//        new RawImageReaderSpi();
-//        log.info("Success: RawImageReaderSpi");
-//        } catch(Exception e) {
-//        	log.log(Level.INFO,"Error: RawImageReaderSpi.",e);
-//        }
+
+		URL location = klass.getResource('/'+klass.getName().replace('.', '/')+".class");
+		log.info("Jar location: "+location);
+
+        log.info("Trying to make RawImageReaderSpi");
+        log.info("Vendor: "+PackageUtil.getVendor());
+        try {
+        new RawImageReaderSpi();
+        log.info("Success: RawImageReaderSpi");
+        } catch(Exception e) {
+        	log.log(Level.INFO,"Error: RawImageReaderSpi.",e);
+        }
 
 		try {
 			CoordinateReferenceSystem epsg = CRS.decode("EPSG:4326", true);
@@ -89,6 +108,26 @@ public class EarthcraftPlugin extends JavaPlugin {
 			log.log(Level.INFO,"Got an error fetching RFF.",e);
 		}
 
+
+		try {
+			log.info("trying to load a full grid");
+			File demFile = new File("/Users/blivens/dev/minecraft/srtm/w140n40.Bathymetry.srtm.dem");
+			System.out.println("Exists: "+demFile.exists());
+			GTopo30Reader reader = new GTopo30Reader( demFile );
+			System.out.println("Remaining coverages: ");
+			GridCoverage2D coverage = reader.read(null);
+			System.out.println("No error during reading");
+
+		} catch (Exception e) {
+			log.log(Level.INFO,"Got an error loading w140n40 grid.",e);
+		}
+
+		try {
+			RenderedOp image = JAI.create("ImageRead", new ParameterBlock(),
+					new RenderingHints(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_DEFAULT));
+		} catch(Exception e) {
+			log.log(Level.INFO,"Got an error reading an image.",e);
+		}
     }
 
     @Override
@@ -178,6 +217,50 @@ public class EarthcraftPlugin extends JavaPlugin {
     	*/
 
     	return gen;
+    }
+
+    /**
+     * Since plugins get loaded late, the GeoTools JAI operators need to be
+     * manually initialized.
+     */
+    protected void initJAI() {
+        // http://docs.oracle.com/cd/E17802_01/products/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/OperationRegistry.html
+    	OperationRegistry registry = JAI.getDefaultInstance().getOperationRegistry();
+    	if( registry == null) {
+    		log.warning("Error with JAI initialization (needed for GeoTools).");
+    	} else {
+    		// Load the two registry files we need
+
+    		// Deserialization throws errors, so (for now), just add the specific registries manually
+    		//initJAIFromFile("/META-INF/services/javax.media.jai.OperationRegistrySpi", registry);
+    		//initJAIFromFile("/META-INF/registryFile.jai", registry);
+
+    		new ImageReadWriteSpi().updateRegistry(registry);
+    	}
+    }
+
+    /**
+     * Initialize JAI from a registry file
+     * @param resource Local path to the registry file relative to the jar
+     * @param registry The OperationRegistry to update
+     */
+    @SuppressWarnings("unused")
+	private void initJAIFromFile(String resource, OperationRegistry registry) {
+    	InputStream in = EarthcraftPlugin.class.getResourceAsStream(resource);
+    	if( in == null) {
+    		log.warning("Error with JAI initialization. Unable to find "+resource);
+    	} else {
+    		try {
+    			registry.updateFromStream(in);
+    		} catch(IOException e) {
+        		log.log(Level.WARNING,"Error with JAI initialization while reading "+resource, e);
+    		}
+    		try {
+				in.close();
+			} catch (IOException e) {
+        		log.log(Level.WARNING,"Error with JAI initialization while closing "+resource, e);
+			}
+    	}
     }
 
 	public static void main(String[] a) {
