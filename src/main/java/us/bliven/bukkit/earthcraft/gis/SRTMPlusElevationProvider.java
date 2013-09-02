@@ -508,7 +508,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			// Load the grid into memory
 			Logger logger = org.geotools.util.logging.Logging.getLogger("org.geotools.gce.gtopo30");
 			logger.setLevel(Level.ALL);
-			logger.log(Level.FINE,"logging works!");
+			logger.log(Level.INFO,"logging to the gtopo30 logger works!");
 
 			System.out.println("Exists: "+demFile.exists());
 			GTopo30Reader reader = new GTopo30Reader( demFile );
