@@ -136,12 +136,29 @@ public class EarthGen extends ChunkGenerator {
 		try {
 			elev = elevation.fetchElevation(spawn);
 		} catch (DataUnavailableException e) {
-			elev = 1.;//1 m above sea level
+			elev = Double.NaN;
 		}
 		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,elev,spawn.z));
+		if(Double.isNaN(spawnloc.getY())) {
+			spawnloc.setY( defaultBlockHeight );
+		}
+
 		return spawnloc;
 	}
 
+	public MapProjection getMapProjection() {
+		return projection;
+	}
+
+
+	public ElevationProvider getElevationProvider() {
+		return elevation;
+	}
+
+
+	public Coordinate getSpawn() {
+		return spawn;
+	}
 
 
 	/*public static void main(String[] args) {

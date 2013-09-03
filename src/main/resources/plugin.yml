@@ -2,3 +2,20 @@ name: Earthcraft
 main: us.bliven.bukkit.earthcraft.EarthcraftPlugin
 version: 0.1
 load: STARTUP
+commands:
+    earth:
+        description: General Earthcraft command
+        usage: /earth cmd [options]
+        aliases: [ec]
+    earthpos:
+        description: Get your world position as latitude,longitude
+        usage: /earthpos [player]
+        permission: earthcraft.ecpos
+        permission-message: You don't have permission earthcraft.ecpos
+        aliases: [ecpos]
+    earthtp:
+        description: Teleport to the specified latitude and longitude
+        usage: /earthtp [player]
+        permission: earthcraft.ectp
+        permission-message: You don't have permission earthcraft.ectp
+        aliases: [ectp]

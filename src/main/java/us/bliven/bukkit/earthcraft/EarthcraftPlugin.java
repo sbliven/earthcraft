@@ -1,47 +1,42 @@
 package us.bliven.bukkit.earthcraft;
 
-import java.awt.RenderingHints;
-import java.awt.image.renderable.ParameterBlock;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.media.jai.JAI;
 import javax.media.jai.OperationRegistry;
-import javax.media.jai.RenderedOp;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.factory.GeoTools;
-import org.geotools.factory.Hints;
-import org.geotools.gce.gtopo30.GTopo30Reader;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.ReferencingFactoryFinder;
-import org.opengis.referencing.crs.CRSAuthorityFactory;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
+import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
-import com.sun.media.imageioimpl.common.PackageUtil;
-import com.sun.media.imageioimpl.plugins.raw.RawImageReaderSpi;
 import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class EarthcraftPlugin extends JavaPlugin {
-	private Logger log;
-	private ElevationProvider primaryProvider = null;
+	private Logger log = null;
+	private ConfigManager config = null;
 
-	private ConfigManager config;
+	// Create a new EarthGen for each world to allow configurability
+	private final Map<String,EarthGen> generators = new HashMap<>();
+
     @Override
 	public void onEnable(){
 
@@ -65,25 +60,14 @@ public class EarthcraftPlugin extends JavaPlugin {
     @Override
 	public void onDisable(){
     	log.info("Earthcraft disabled.");
-
-    	//If the elevationProvider counts API calls, report them here
-    	if(primaryProvider != null) {
-    		Class<? extends ElevationProvider> cl = primaryProvider.getClass();
-
-    		try {
-    			// Try to report on the number of elevation requests, where appropriate
-				Method getRequestsMade = cl.getMethod("getRequestsMade",(Class<?>[])null);
-				int requests = (Integer) getRequestsMade.invoke(primaryProvider, (Object[])null);
-				System.out.println("Earthcraft made "+requests+" calls to the Elevation API.");
-			} catch (SecurityException e) {} //Ignore
-			catch (NoSuchMethodException e) {} //Ignore
-    		catch (IllegalAccessException e) {}
-    		catch (InvocationTargetException e) {}
-    	}
     }
 
     @Override
-	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+	public synchronized ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+    	if(generators.containsKey(worldName)) {
+    		return generators.get(worldName);
+    	}
+
     	// Set up elevation provider
 
     	// Load info from config file
@@ -102,6 +86,11 @@ public class EarthcraftPlugin extends JavaPlugin {
 		}
 
     	EarthGen gen = new EarthGen(projection,provider,spawn);
+
+    	Location spawnLoc = gen.getFixedSpawnLocation(null, null);
+    	log.info("Spawn is at block "+spawnLoc);
+
+    	generators.put(worldName,gen);
 
     	return gen;
     }
@@ -149,6 +138,79 @@ public class EarthcraftPlugin extends JavaPlugin {
 			}
     	}
     }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args){
+    	String name = cmd.getName();
+    	if(name.equalsIgnoreCase("earth")) {
+    		if( args.length<1 )
+    			//no subcommand specified
+    			return false;
+    		String subcmd = args[0];
+    		String[] subargs = Arrays.copyOfRange(args, 1, args.length);
+    		if( subcmd.equalsIgnoreCase("pos")) {
+    			return onPosCommand(sender,subargs);
+    		} else if(subcmd.equalsIgnoreCase("tp")) {
+    			return onTPCommand(sender,subargs);
+    		}
+    	} else if(name.equalsIgnoreCase("earthpos")){
+			return onPosCommand(sender,args);
+    	} else if(name.equalsIgnoreCase("earthtp")){
+			return onTPCommand(sender,args);
+    	}
+
+    	return false;
+    }
+
+
+	private boolean onTPCommand(CommandSender sender, String[] args) {
+		//todo check permissions
+		log.info(String.format("%s ectp! %s",sender.getName(),Arrays.toString(args)));
+		return true;
+	}
+
+
+	private boolean onPosCommand(CommandSender sender, String[] args) {
+		if(args.length > 1) {
+			return false;
+		}
+		Player player;
+		if( args.length == 1) {
+			// Send position of specified player
+			String playername = args[0];
+			player = Bukkit.getPlayer(playername);
+			if( !player.isOnline() ) {
+				sender.sendMessage("Error: "+playername+" is offline");
+				return true;
+			}
+
+		} else {
+			// Send position of current player
+			if( sender instanceof Player ) {
+				player = (Player) sender;
+			} else {
+				sender.sendMessage("Error: Player required from console");
+				return false;
+			}
+		}
+		String world = player.getWorld().getName();
+		EarthGen gen = generators.get(world);
+		if( gen == null) {
+			sender.sendMessage("Player "+player.getName()+" not in an Earthcraft world.");
+			return false;
+		}
+
+		Location loc = player.getLocation();
+		MapProjection proj = gen.getMapProjection();
+
+		Coordinate coord = proj.locationToCoordinate(loc);
+
+		String message = String.format("%s located at %s", player.getName(),
+				ProjectionTools.latlonString(coord));
+		sender.sendMessage(message);
+		return true;
+	}
+
 
 	public static void main(String[] a) {
     	System.out.println("CLASSPATH="+System.getProperty("java.class.path"));
