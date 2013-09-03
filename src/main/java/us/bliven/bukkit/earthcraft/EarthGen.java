@@ -3,6 +3,8 @@ package us.bliven.bukkit.earthcraft;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,21 +23,26 @@ import com.vividsolutions.jts.geom.Coordinate;
  * @author Spencer Bliven
  */
 public class EarthGen extends ChunkGenerator {
+	Logger log;
+
 	private MapProjection projection;
 	private ElevationProvider elevation;
 	private Coordinate spawn;
-	
+
+	private final int defaultBlockHeight = 1;
+
 	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
 		this.projection = projection;
 		this.elevation = elevation;
 		this.spawn = spawn;
+		this.log = Logger.getLogger("us.bliven.bukkit.earthcraft.EarthGen");
 	}
-	
-	
+
+
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world) {
-		return Arrays.asList();//super.getDefaultPopulators(world); 
+		return Arrays.asList();//super.getDefaultPopulators(world);
 		//Arrays.asList((BlockPopulator) new BlankPopulator());
 	}
 
@@ -46,7 +53,7 @@ public class EarthGen extends ChunkGenerator {
 	public boolean canSpawn(World world, int x, int z) {
 		return true;
 	}
-	
+
 	/**
 	 * This converts relative chunk locations to bytes that can be written to the chunk
 	 */
@@ -54,14 +61,14 @@ public class EarthGen extends ChunkGenerator {
 		return (x * 16 + z) * 256 + y;
 	}
 
-	
+
 	@Override
 	public byte[] generate(World world, Random rand, int chunkx, int chunkz) {
 		int chunkHeight = world.getMaxHeight();
 		byte[] result = new byte[16*16*chunkHeight];
 
-		
-		
+
+
 
 		for(int x=0; x<16; x++){
 			for(int z=0; z<16; z++) {
@@ -79,36 +86,45 @@ public class EarthGen extends ChunkGenerator {
 		}
 		return result;
 	}
-	
+
+	/**
+	 * Calculate the elevation for a position
+	 * @param world
+	 * @param worldx
+	 * @param worldz
+	 * @return
+	 */
 	public int getBlockHeight(World world, int worldx, int worldz) {
 		int height = 1;
 		Location root = new Location(world,worldx,0,worldz);
 		// Translate x/z to lat/lon
 		Coordinate coord = projection.locationToCoordinate(root);
-		List<Double> heights;
 		try {
 			// get elevation in m
-			heights = elevation.fetchElevations(Arrays.asList(coord));
+			Double h = elevation.fetchElevation(coord);
 
-			if(heights != null) {
-				assert(heights.size() == 1);
-				
-				Double h = heights.get(0);
-				if(h != null && h != Double.NaN) {
-					coord.z = h;
-				}
+			if(h != null) {
+				coord.z = h;
+			} else {
+				coord.z = Double.NaN;
 			}
-			
+
 		} catch (DataUnavailableException e) {
-			System.out.println("Data unavailable at "+worldx+","+worldz);
-			coord.z = 1; //default to just above sea level
+			log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
+			coord.z = Double.NaN;
 		}
 		// translate elevation to blocks
 		root = projection.coordinateToLocation(world, coord);
-		height = (int) Math.floor(root.getY()+1);
-		
-		if(height>world.getMaxHeight()) height = world.getMaxHeight();
-//		return (int)(Math.random()*20);
+		if(root.getY() == Double.NaN ) {
+			height = defaultBlockHeight;
+		} else {
+			height = (int) Math.floor(root.getY()+1);
+		}
+
+		if(height>world.getMaxHeight()) {
+			height = world.getMaxHeight();
+		}
+
 		return height;
 	}
 
@@ -125,8 +141,8 @@ public class EarthGen extends ChunkGenerator {
 		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,elev,spawn.z));
 		return spawnloc;
 	}
-	
-	
+
+
 
 	/*public static void main(String[] args) {
 		World world = new StubWorld();
@@ -137,6 +153,6 @@ public class EarthGen extends ChunkGenerator {
 			int h;
 			h = gen.getBlockHeight(world,10,10);
 			System.out.println(h);
-		
+
 	}*/
 }

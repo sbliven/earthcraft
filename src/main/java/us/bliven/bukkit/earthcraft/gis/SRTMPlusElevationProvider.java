@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -22,13 +24,9 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.gce.gtopo30.GTopo30Reader;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.Envelope2D;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.LRULinkedHashMap;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.operation.TransformException;
 
 import us.bliven.bukkit.earthcraft.util.FileCache;
@@ -51,16 +49,23 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	// LRU set of Grids storing the SMTP tiles (partially) in memory
 	private final LRULinkedHashMap<String,GridCoverage2D> grids;//a tile identifier -> Grid
 
+	private final boolean wrap;
+
 	private final ExecutorService executor;
-	private Map<String,Future<?>> currentGrids; // List of grids being loaded from memory
+	private final Map<String,Future<?>> currentGrids; // List of grids being loaded from memory
 
 	public SRTMPlusElevationProvider(String dir) {
+		this(dir,true);
+	}
+	public SRTMPlusElevationProvider(String dir, boolean wrap) {
 		this.executor = Executors.newFixedThreadPool(2);
 
 		this.cache = new FileCache(dir,executor);
 
 		this.grids = new LRULinkedHashMap<String,GridCoverage2D>(GRID_CACHE_SIZE);
 		this.currentGrids = new HashMap<String,Future<?>>();
+
+		this.wrap = wrap;
 	}
 
 
@@ -472,6 +477,16 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	 */
 	@Override
 	public Double fetchElevation(Coordinate point) throws DataUnavailableException {
+		if( wrap ) {
+			// Convert coordinates to valid lat=(-90,90], lon=[-180,180)
+			point = wrapCoordinate(point);
+		} else {
+			if( point.x <= -90 || 90 < point.x ||
+					point.y < -180 || 180 <= point.y ) {
+				// Coordinates off the map
+				return null;
+			}
+		}
 		GridCoverage2D grid = loadGrid(point);
 		// Change from (lat,lon) convention to (x,y)
 		DirectPosition pos = new DirectPosition2D(point.y,point.x);
@@ -479,6 +494,24 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 		return elev;
 	}
 
+
+	/**
+	 * Convert coordinates to valid lat=(-90,90], lon=[-180,180)
+	 * @param point
+	 * @return
+	 */
+	protected static Coordinate wrapCoordinate(Coordinate point) {
+		// Convert coordinates to valid lat=(-90,90], lon=[-180,180)
+		double wrapx = point.x % 180;
+		double wrapy = point.y % 360;
+		if( wrapx > 90) {
+			wrapx -= 180;
+		}
+		if( wrapy >= 180) {
+			wrapy -= 360;
+		}
+		return new Coordinate(wrapx,wrapy,point.z);
+	}
 	private final class GridLoader implements Callable<Object> {
 		private final String tile;
 		private final String fileBase;

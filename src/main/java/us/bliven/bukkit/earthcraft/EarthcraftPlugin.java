@@ -185,6 +185,8 @@ public class EarthcraftPlugin extends JavaPlugin {
     	ElevationProvider provider = config.getProvider(worldName);
     	Coordinate spawn = config.getSpawn(worldName);
 
+    	log.info("Setting spawn to "+spawn.x+","+spawn.y);
+
     	// Check that the ElevationProvider is working
     	try {
 			provider.fetchElevation(spawn);
