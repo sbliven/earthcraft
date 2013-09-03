@@ -59,76 +59,8 @@ public class EarthcraftPlugin extends JavaPlugin {
 
         config = new ConfigManager(this);
 
-        logDebugInfo();
     }
 
-    private void logDebugInfo() {
-        // Test packaging
-//		Class<PackageUtil> klass = PackageUtil.class;//javax.imageio.spi.IIOServiceProvider.class;
-		Class<JAI> klass = JAI.class;//javax.imageio.spi.IIOServiceProvider.class;
-//		CodeSource src = klass.getProtectionDomain().getCodeSource();
-//		if (src != null) {
-//			URL jar = src.getLocation();
-//			log.info("Class location: "+jar);
-//		} else {
-//			log.info("No class location.");
-//		}
-
-		URL location = klass.getResource('/'+klass.getName().replace('.', '/')+".class");
-		log.info("Jar location: "+location);
-
-        log.info("Trying to make RawImageReaderSpi");
-        log.info("Vendor: "+PackageUtil.getVendor());
-        try {
-        new RawImageReaderSpi();
-        log.info("Success: RawImageReaderSpi");
-        } catch(Exception e) {
-        	log.log(Level.INFO,"Error: RawImageReaderSpi.",e);
-        }
-
-		try {
-			CoordinateReferenceSystem epsg = CRS.decode("EPSG:4326", true);
-			System.out.println("EPSG: "+epsg.getClass().getName());
-			System.out.println("  "+epsg);
-		} catch (Exception e) {
-			log.log(Level.INFO,"Got an error constructing a geoCRS.",e);
-		}
-
-		try {
-		final Hints hints = GeoTools.getDefaultHints();
-		hints.put(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, Boolean.TRUE);
-		Set<CRSAuthorityFactory> rff = ReferencingFactoryFinder.getCRSAuthorityFactories(hints);
-
-		System.out.println("RFF: "+rff.size());
-		for( CRSAuthorityFactory r : rff) {
-			System.out.println("  type: "+r.getClass().getName());
-			System.out.println("  "+r);
-		}
-		} catch (Exception e) {
-			log.log(Level.INFO,"Got an error fetching RFF.",e);
-		}
-
-
-		try {
-			log.info("trying to load a full grid");
-			File demFile = new File("/Users/blivens/dev/minecraft/srtm/w140n40.Bathymetry.srtm.dem");
-			System.out.println("Exists: "+demFile.exists());
-			GTopo30Reader reader = new GTopo30Reader( demFile );
-			System.out.println("Remaining coverages: ");
-			GridCoverage2D coverage = reader.read(null);
-			System.out.println("No error during reading");
-
-		} catch (Exception e) {
-			log.log(Level.INFO,"Got an error loading w140n40 grid.",e);
-		}
-
-		try {
-			RenderedOp image = JAI.create("ImageRead", new ParameterBlock(),
-					new RenderingHints(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_DEFAULT));
-		} catch(Exception e) {
-			log.log(Level.INFO,"Got an error reading an image.",e);
-		}
-    }
 
     @Override
 	public void onDisable(){
@@ -152,33 +84,7 @@ public class EarthcraftPlugin extends JavaPlugin {
 
     @Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-    	//log.info("Providing Earthcraft as generator for "+worldName);
-    	//return new GlowstoneReefGen();
-
     	// Set up elevation provider
-
-//    	double south = 32.73;
-//    	double north = 32.80; // 84 blocks
-//    	double west = -117.26;
-//    	double east = -117.20; // 72 blocks
-//
-////		south = 0.0;
-////		north = 0.64;
-////		west = 0.0;
-////		east = 0.64;
-//
-//    	// Define projection from degrees to blocks
-//    	Coordinate scale = new Coordinate(3./60/60, 3./60/60, 10.); // 3"/block
-//    	scale = new Coordinate(.001,.001,1);
-////    	Coordinate origin = new Coordinate(0.,0.,-40.);
-//    	Coordinate origin = new Coordinate(south, west, -40);
-//    	MapProjection projection = new EquirectangularProjection(origin,scale);
-//
-//
-////		primaryProvider = new TestElevationProvider(south,north,west,east,0.,64.);
-//		primaryProvider = new OpenElevationConnector();
-//    	Coordinate gridScale = new Coordinate(4*scale.x,4*scale.y); // One grid every chunk
-//    	ElevationProvider provider = new InterpolatingElevationCache(primaryProvider,gridScale);
 
     	// Load info from config file
     	MapProjection projection = config.getProjection(worldName);
@@ -196,27 +102,6 @@ public class EarthcraftPlugin extends JavaPlugin {
 		}
 
     	EarthGen gen = new EarthGen(projection,provider,spawn);
-
-    	/*
-    	//Some tests
-    	World world = new StubWorld();
-    	int[] testPts = new int[] {
-    			-2,0,
-    			-1,0,
-    			0,0,
-    			1,0,
-    			2,0,
-    			-2,1,
-    			-1,1,
-    			0,1,
-    			1,1,
-    			2,1,
-    	};
-    	for(int i=0;i<testPts.length-1;i+=2) {
-    		int h = gen.getBlockHeight(world, testPts[i], testPts[i+1]);
-    		System.out.println(String.format("Height(%2d,%2d) = %d",testPts[i], testPts[i+1], h));
-    	}
-    	*/
 
     	return gen;
     }
