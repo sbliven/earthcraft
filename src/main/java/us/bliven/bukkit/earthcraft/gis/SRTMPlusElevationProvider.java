@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -479,7 +477,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	public Double fetchElevation(Coordinate point) throws DataUnavailableException {
 		if( wrap ) {
 			// Convert coordinates to valid lat=(-90,90], lon=[-180,180)
-			point = wrapCoordinate(point);
+			point = ProjectionTools.wrapCoordinate(point);
 		} else {
 			if( point.x <= -90 || 90 < point.x ||
 					point.y < -180 || 180 <= point.y ) {
@@ -494,24 +492,6 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 		return elev;
 	}
 
-
-	/**
-	 * Convert coordinates to valid lat=(-90,90], lon=[-180,180)
-	 * @param point
-	 * @return
-	 */
-	protected static Coordinate wrapCoordinate(Coordinate point) {
-		// Convert coordinates to valid lat=(-90,90], lon=[-180,180)
-		double wrapx = point.x % 180;
-		double wrapy = point.y % 360;
-		if( wrapx > 90) {
-			wrapx -= 180;
-		}
-		if( wrapy >= 180) {
-			wrapy -= 360;
-		}
-		return new Coordinate(wrapx,wrapy,point.z);
-	}
 	private final class GridLoader implements Callable<Object> {
 		private final String tile;
 		private final String fileBase;
