@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package us.bliven.bukkit.earthcraft.gis;
 
@@ -37,10 +37,10 @@ public class SRTMPlusElevationProviderTest {
 		if(! (new File(dir)).exists()) {
 			dir = System.getProperty("java.io.tmpdir") + "SRTMPlus";
 		}
-		
+
 		srtm = new SRTMPlusElevationProvider(dir);
 	}
-	
+
 	/**
 	 * Test that the grid is oriented right-side-up
 	 * by comparing the corners to known elevations
@@ -56,7 +56,7 @@ public class SRTMPlusElevationProviderTest {
 		 * of the grid's geometry. The expected values are taken
 		 * directly from the file hex and are consistent with
 		 * google earth.
-		 * 
+		 *
 		 * 0,0 is the northwest
 		 * It increases eastward to 4799,0
 		 * It wraps around to 1,0 (cell 4800) in the northwest
@@ -67,24 +67,46 @@ public class SRTMPlusElevationProviderTest {
 		GridCoordinates2D pos;
 		pos = new GridCoordinates2D(0,0);
 		assertEquals(-4338,grid.evaluate(pos,(int[])null)[0]);
-		
+
+		pos = new GridCoordinates2D(1,0);
+		assertEquals(-4377,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(100,0);
+		assertEquals(-4106,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(479,0);
+		assertEquals(-4466,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(480,0);
+		assertEquals(-4337,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(500,0);
+		assertEquals(-3406,grid.evaluate(pos,(int[])null)[0]);
+
+
+		pos = new GridCoordinates2D(1000,0);
+		assertEquals(-4366,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(2000,0);
+		assertEquals(410,grid.evaluate(pos,(int[])null)[0]);
+
 		pos = new GridCoordinates2D(4799,0);
 		assertEquals(693,grid.evaluate(pos,(int[])null)[0]);
 		pos = new GridCoordinates2D(0,1);
 		assertEquals(-4392,grid.evaluate(pos,(int[])null)[0]);
-		
+
 		pos = new GridCoordinates2D(4799,5999);
 		assertEquals(-4339,grid.evaluate(pos,(int[])null)[0]);
 	}
 
 	/**
 	 * Test that exceptions are thrown where expected
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testMissingData() throws Exception {
 		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
-		
+
 		GridCoordinates2D gridPos;
 		DirectPosition pos;
 
@@ -95,7 +117,7 @@ public class SRTMPlusElevationProviderTest {
 		} catch( PointOutsideCoverageException e) {
 			//expected
 		}
-		
+
 		try {
 			pos = new DirectPosition2D(-140-d/4,40);
 			grid.evaluate(pos);
@@ -103,7 +125,7 @@ public class SRTMPlusElevationProviderTest {
 		} catch( PointOutsideCoverageException e) {
 			//expected
 		}
-		
+
 		try {
 			pos = new DirectPosition2D(-100,40);
 			grid.evaluate(pos);
@@ -119,10 +141,10 @@ public class SRTMPlusElevationProviderTest {
 			//expected
 		}
 	}
-	
+
 	/**
 	 * Test that grids are being correctly loaded with the proper geometry
-	 * 
+	 *
 	 * Doesn't test any actual elevations
 	 * @throws Exception
 	 */
@@ -134,19 +156,19 @@ public class SRTMPlusElevationProviderTest {
 
 		GridCoordinates2D pos;
 		DirectPosition result;
-		
+
 		pos = new GridCoordinates2D(0, 0);
 		result = geom.gridToWorld(pos);
 		System.out.println(geom.gridToWorld(pos));
 		assertEquals(-140.+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(40.-d/2, result.getOrdinate(1),1e-5);
-		
+
 		pos = new GridCoordinates2D(4799, 0);
 		result = geom.gridToWorld(pos);
 		System.out.println(geom.gridToWorld(pos));
 		assertEquals(-100.-d+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(40.-d/2, result.getOrdinate(1),1e-5);
-		
+
 		pos = new GridCoordinates2D(0, 1);
 		result = geom.gridToWorld(pos);
 		System.out.println(geom.gridToWorld(pos));
@@ -158,10 +180,10 @@ public class SRTMPlusElevationProviderTest {
 		System.out.println(geom.gridToWorld(pos));
 		assertEquals(-100.-d+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(-10+d-d/2, result.getOrdinate(1),1e-5);
-		
+
 		// Test bounds
 		// Pixels give elevation at center of a square
-		
+
 		result = new DirectPosition2D(-140.,40.);
 		pos = geom.worldToGrid(result);
 		assertEquals(0, pos.getCoordinateValue(0));
@@ -171,18 +193,18 @@ public class SRTMPlusElevationProviderTest {
 		pos = geom.worldToGrid(result);
 		assertEquals(-1, pos.getCoordinateValue(0));
 		assertEquals(-1, pos.getCoordinateValue(1));
-		
+
 		result = new DirectPosition2D(-140+d*3/4,40-d*3/4);
 		pos = geom.worldToGrid(result);
 		assertEquals(0, pos.getCoordinateValue(0));
 		assertEquals(0, pos.getCoordinateValue(1));
-		
+
 		result = new DirectPosition2D(-140+d,40-d);
 		pos = geom.worldToGrid(result);
 		assertEquals(1, pos.getCoordinateValue(0));
 		assertEquals(1, pos.getCoordinateValue(1));
 	}
-	
+
 	/**
 	 * Full test that SRTM elevations are correct
 	 * @throws Exception
@@ -193,56 +215,56 @@ public class SRTMPlusElevationProviderTest {
 		Double result;
 		List<Coordinate> poses = new ArrayList<Coordinate>();
 		List<Double> expecteds = new ArrayList<Double>();
-		
-		
+
+
 		pos = new Coordinate(40.,-140.);
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4338,result,1e-6);
-		
+
 		pos = new Coordinate(40,-100-d);
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(693,result,1e-6);
-		
+
 		pos = new Coordinate(40-d,-140.);
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4392,result,1e-6);
-		
+
 		pos = new Coordinate(-10+d,-100.-d);
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4339,result,1e-6);
-		
+
 		//Elevations should be constant within a square with topleft 40,-140
 		pos = new Coordinate(40.-d/2,-140.+d/2);//.5,.5
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4338,result,1e-6);
-		
+
 		pos = new Coordinate(40.-d*3/4,-140.+d*3/4);//.75,.75
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4338,result,1e-6);
-		
+
 		pos = new Coordinate(40.-d,-140.+d);//1,1
 		result = srtm.fetchElevation(pos);
 		poses.add(pos);
 		expecteds.add(result);
 		assertEquals(-4428.,result,1e-6);
-		
+
 		List<Double> results = srtm.fetchElevations(poses);
 		for(int i=0;i<expecteds.size();i++) {
 			assertEquals(expecteds.get(i), results.get(i),1e-6);
 		}
-		
+
 	}
 
 }
