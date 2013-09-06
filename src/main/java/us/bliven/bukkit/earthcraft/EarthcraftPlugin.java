@@ -33,7 +33,7 @@ public class EarthcraftPlugin extends JavaPlugin {
 	private ConfigManager config = null;
 
 	// Create a new EarthGen for each world to allow configurability
-	private final Map<String,EarthGen> generators = new HashMap<>();
+	private final Map<String,EarthGen> generators = new HashMap<String, EarthGen>();
 
     @Override
 	public void onEnable(){
