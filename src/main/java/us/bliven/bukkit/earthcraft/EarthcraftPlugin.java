@@ -2,8 +2,6 @@ package us.bliven.bukkit.earthcraft;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +39,7 @@ public class EarthcraftPlugin extends JavaPlugin {
 	public void onEnable(){
 
         //log = this.getLogger();
-        log = this.getLogger();//Logger.getLogger("us.bliven.bukkit.earthcraft.EarthcraftPlugin");
+        log = this.getLogger();//Logger.getLogger(EarthcraftPlugin.class.getName());
         log.setLevel(Level.ALL);
 
         log.info("Earthcraft enabled.");

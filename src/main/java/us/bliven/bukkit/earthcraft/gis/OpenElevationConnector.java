@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -44,6 +45,8 @@ public class OpenElevationConnector implements ElevationProvider {
 	private ScheduledExecutorService executor = null;
 	private ScheduledFuture<?> monitorHandle = null;
 
+	private final Logger log = Logger.getLogger(OpenElevationConnector.class.getName());
+
 	@Override
 	public Double fetchElevation(Coordinate query) throws DataUnavailableException{
 		List<Double> q = fetchElevations(Lists.asList(query,new Coordinate[0]));
@@ -76,7 +79,7 @@ public class OpenElevationConnector implements ElevationProvider {
 			throw new DataUnavailableException("Error constructing URL: "+uri.toString(),e);
 		}
 
-		//System.out.println(url);
+		//log.info(url);
 
 		// Create SAX parser for the XML
 
@@ -86,7 +89,7 @@ public class OpenElevationConnector implements ElevationProvider {
 		// Process requested URL
 		try {
 			requestsMade++;
-			OpenElevationConnector.handleRestRequest(url, handler);
+			handleRestRequest(url, handler);
 		} catch (Exception e) {
 			DataUnavailableException de = new DataUnavailableException(e.getMessage(),e);
 			throw de;
@@ -98,7 +101,7 @@ public class OpenElevationConnector implements ElevationProvider {
 		if(handler.status != null && handler.status != 0) {
 			if(inputSize == 1) { //Base case
 				// Only requested one point. Return [null]
-				System.err.println(String.format("MapQuest Error: Got response %d for %s%nMapQuest Error message: \"%s\"%n",handler.status,uri, handler.message));
+				log.warning(String.format("MapQuest Error: Got response %d for %s%nMapQuest Error message: \"%s\"%n",handler.status,uri, handler.message));
 				altitude = Lists.newArrayList((Double)null);
 			} else {
 				// Try individual requests, then merge them
@@ -118,7 +121,7 @@ public class OpenElevationConnector implements ElevationProvider {
 		return altitude;
 	}
 
-	private static void handleRestRequest(URL url, DefaultHandler handler) throws SAXException, IOException, ParserConfigurationException {
+	private void handleRestRequest(URL url, DefaultHandler handler) throws SAXException, IOException, ParserConfigurationException {
 		// Fetch XML stream
 		HttpURLConnection huc = null;
 
@@ -128,7 +131,8 @@ public class OpenElevationConnector implements ElevationProvider {
 		int responseCode = huc.getResponseCode();
 
 		if(responseCode != 200) {
-			System.err.println("HTTP Error: Got response "+responseCode+" for "+url);
+			// We're probably about to throw an exception
+			log.warning("HTTP Error: Got response "+responseCode+" for "+url);
 		}
 
 		InputStream response = huc.getInputStream();
@@ -147,6 +151,7 @@ public class OpenElevationConnector implements ElevationProvider {
 		public Integer status = null;
 		public String message = null;
 		private String data = "";
+		protected final Logger log = Logger.getLogger(OpenElevationHandler.class.getName());
 
 		// State machine
 		private static enum State {
@@ -161,7 +166,6 @@ public class OpenElevationConnector implements ElevationProvider {
 		@Override
 		public void startElement(String uri, String localName,String qName,
 				Attributes attributes) throws SAXException {
-			//System.out.println("START "+qName);
 			if(qName.equalsIgnoreCase("height")) {
 				state = State.GET_HEIGHT;
 			} else if(qName.equalsIgnoreCase("statusCode")) {
@@ -176,7 +180,6 @@ public class OpenElevationConnector implements ElevationProvider {
 		}
 		@Override
 		public void endElement(String uri, String localName, String qName) {
-			//System.out.println("END   "+qName);
 			assert( state == State.GET_HEIGHT && qName.equalsIgnoreCase("height") ||
 					state == State.GET_STATUS && qName.equalsIgnoreCase("statusCode") ||
 					state == State.GET_MSG && qName.equalsIgnoreCase("message") ||
@@ -187,9 +190,7 @@ public class OpenElevationConnector implements ElevationProvider {
 				Double d = new Double(data);
 				altitude.add(d);
 				if(pointNum != altitude.size()) {
-					System.out.flush();
-					System.err.format("Length mismatch. Should be on point %d but have %d points.",pointNum, altitude.size());
-					System.err.flush();
+					log.severe(String.format("Length mismatch. Should be on point %d but have %d points.",pointNum, altitude.size()));
 				}
 				break;
 			case GET_STATUS:
@@ -202,13 +203,17 @@ public class OpenElevationConnector implements ElevationProvider {
 					message += "\n"+data;
 				}
 				break;
+			case IDLE:
+				break;
+			default:
+				log.severe("Unknown state "+state);
+				break;
 			}
 
 			state = State.IDLE;
 		}
 		@Override
 		public void characters(char[] ch, int start, int length) {
-			//System.out.println("DATA  "+data);
 			if(state != State.IDLE) {
 				data += new String(ch,start,length);
 			}
@@ -226,18 +231,9 @@ public class OpenElevationConnector implements ElevationProvider {
 				}
 			};
 
-			OpenElevationConnector.handleRestRequest(url, handler);
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
+			OpenElevationConnector oec = new OpenElevationConnector();
+			oec.handleRestRequest(url, handler);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -281,7 +277,7 @@ public class OpenElevationConnector implements ElevationProvider {
 			int currRequests = getRequestsMade();
 			if( currRequests > lastRequests ) {
 				// Requests were made
-				System.out.println(String.format("Made %d requests in last %.2f sec.%n",
+				log.info(String.format("Made %d requests in last %.2f sec.%n",
 						currRequests-lastRequests,
 						(currTime-lastCheck)/1000. ));
 			}

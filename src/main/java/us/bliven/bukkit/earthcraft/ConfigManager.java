@@ -1,5 +1,7 @@
 package us.bliven.bukkit.earthcraft;
 
+import java.util.logging.Logger;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -20,10 +22,14 @@ import com.vividsolutions.jts.geom.Coordinate;
  */
 public class ConfigManager {
 
-	EarthcraftPlugin plugin;
+	private EarthcraftPlugin plugin;
+
+	private Logger log;
 
 	public ConfigManager(EarthcraftPlugin plugin) {
 		this.plugin=plugin;
+
+		log = Logger.getLogger(ConfigManager.class.getName());
 
 		//TODO defaults
 	}
@@ -42,8 +48,8 @@ public class ConfigManager {
 		if( type.equalsIgnoreCase( "EquirectangularProjection" )) {
 			return createEquirectangularProjection(parameters);
 		} else {
-			//TODO handle error
-			System.out.println("Unrecognized projection type "+type);
+			//Bad configuation file
+			log.severe("Unrecognized projection type "+type);
 			return createEquirectangularProjection(parameters);
 		}
 	}
@@ -89,7 +95,7 @@ public class ConfigManager {
 			return createSRTMPlusElevationProvider(params,wrap);
 		} else {
 			// Default to flat world
-			System.out.println("Error: unknown elevation type "+type);
+			log.severe("Error: unknown elevation type "+type);
 			return createFlatElevationProvider(params);
 		}
 	}

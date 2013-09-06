@@ -13,7 +13,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.geotools.coverage.grid.GridCoordinates2D;
@@ -49,6 +48,8 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 
 	private final boolean wrap;
 
+	protected Logger log;
+
 	private final ExecutorService executor;
 	private final Map<String,Future<?>> currentGrids; // List of grids being loaded from memory
 
@@ -64,6 +65,8 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 		this.currentGrids = new HashMap<String,Future<?>>();
 
 		this.wrap = wrap;
+
+		this.log = Logger.getLogger(SRTMPlusElevationProvider.class.getName());
 	}
 
 
@@ -88,7 +91,6 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			throw new DataUnavailableException("Unable to load grid "+tile,e);
 		}
 
-		//System.out.println("finished getting "+tile);
 		return grids.get(tile);
 	}
 
@@ -98,7 +100,6 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	 */
 	@Override
 	protected void finalize() {
-		System.out.println("Finalizing SRTM");
 		executor.shutdownNow(); // kill waiting thread loads
 	}
 
@@ -189,7 +190,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			return;
 		}
 
-		System.out.println("Creating "+filename);
+		log.info("Creating "+filename);
 
 		StringBuilder contents = new StringBuilder();
 		String eol = System.getProperty("line.separator");
@@ -219,7 +220,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			return;
 		}
 
-		System.out.println("Creating "+filename);
+		log.info("Creating "+filename);
 
 		StringBuilder contents = new StringBuilder();
 		String eol = System.getProperty("line.separator");
@@ -241,7 +242,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			return;
 		}
 
-		System.out.println("Creating "+filename);
+		log.info("Creating "+filename);
 
 		StringBuilder contents = new StringBuilder();
 		String eol = System.getProperty("line.separator");
@@ -511,72 +512,23 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			cache.fetch(fileBase+".ers");
 			cache.fetch(fileBase+".dem");
 
-			printDebugInfo();
-
 			long start = System.currentTimeMillis();
 
 			File demFile = new File(cache.getDir(),fileBase+".dem");
-			System.out.println("Done downloading "+tile+". Loading "+demFile);
 
 			// Load the grid into memory
-			Logger logger = org.geotools.util.logging.Logging.getLogger("org.geotools.gce.gtopo30");
-			logger.setLevel(Level.ALL);
-			logger.log(Level.INFO,"logging to the gtopo30 logger works!");
-
-			System.out.println("Exists: "+demFile.exists());
 			GTopo30Reader reader = new GTopo30Reader( demFile );
-			System.out.println("Remaining coverages: ");
 			GridCoverage2D coverage = reader.read(null);
-			System.out.println("No error during reading");
 
 			synchronized(SRTMPlusElevationProvider.this) {
 				grids.put(tile,coverage);
 			}
 
-			System.out.println(String.format("Loaded grid %s. Took %f s%n",
+			log.info(String.format("Loaded grid %s. Took %f s%n",
 					tile, (System.currentTimeMillis()-start)/1000.));
 
 			// Dummy result object
 			return null;
-		}
-
-		private void printDebugInfo() {
-			System.out.println("Debug info for "+tile);
-
-			try {
-				File demFile = new File(cache.getDir(),fileBase+".dem");
-				URL urlToUse = demFile.toURI().toURL();
-
-				String dmext =".dem";
-				String dhext = ".hdr";
-				String prjext = ".prj";
-				String stext = ".stx";
-				URL demURL,prjURL,demHeaderURL,statsURL;
-
-				boolean extUpperCase = false;
-				String filename = demFile.getName();
-				String coverageName = filename.substring(0, filename.length() - 4);
-
-				demURL = new URL(urlToUse, coverageName
-						+ (!extUpperCase ? dmext : dmext.toUpperCase()));
-				prjURL = new URL(urlToUse, coverageName
-						+ (!extUpperCase ? prjext : prjext.toUpperCase()));
-				demHeaderURL = new URL(urlToUse, coverageName
-						+ (!extUpperCase ? dhext : dhext.toUpperCase()));
-				statsURL = new URL(urlToUse, coverageName
-						+ (!extUpperCase ? stext : stext.toUpperCase()));
-
-				System.out.println( (new File(demURL.toURI()).exists()?"OK  ":"ERR ") + demURL.getPath());
-				System.out.println( (new File(prjURL.toURI()).exists()?"OK  ":"ERR ") + prjURL.getPath());
-				System.out.println( (new File(demHeaderURL.toURI()).exists()?"OK  ":"ERR ") + demHeaderURL.getPath());
-				System.out.println( (new File(statsURL.toURI()).exists()?"OK  ":"ERR ") + statsURL.getPath());
-
-			} catch( Exception e) {
-				System.err.println("Got an error in printDebugInfo: "+e.getMessage());
-				e.printStackTrace();
-			}
-
-
 		}
 	}
 
@@ -615,7 +567,6 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 				GridCoordinates2D pac2 = geom.worldToGrid(new DirectPosition2D(-140+0.00833333333333/2,40-0.00833333333333/2));
 				int i = 0;
 			} catch (TransformException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
@@ -630,7 +581,6 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			int elev9 = grid.evaluate((DirectPosition)new DirectPosition2D(-140+0.008333/2,40-0.008333/2), (int[]) null)[0];
 			int i=0;
 		} catch (DataUnavailableException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		srtm = null;

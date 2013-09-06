@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * Manages file downloads
@@ -27,10 +28,12 @@ public class FileCache {
 
 	private ExecutorService executor;
 	private boolean shutdownExecutorOnExit;
-	
-	// synchronized; Acts as lock on the downloads 
+
+	// synchronized; Acts as lock on the downloads
 	private final Map<String,Future<Response>> currentDownloads;
-	
+
+	private Logger log = Logger.getLogger(FileCache.class.getName());
+
 	public FileCache() {
 		this(System.getProperty("java.io.tmpdir"));
 	}
@@ -43,7 +46,7 @@ public class FileCache {
 	 * code is responsible for shutting down the executor at the end of the
 	 * instance's lifecycle. This may be accomplished by calling
 	 * {@link #shutdown()} on this FileCache or by shutting down the executor
-	 * directly. 
+	 * directly.
 	 * @param cacheDir
 	 * @param executor
 	 */
@@ -55,10 +58,10 @@ public class FileCache {
 		if(!dirFile.exists()) {
 			dirFile.mkdir();
 		}
-		
+
 		this.executor = executor;
 		this.shutdownExecutorOnExit = false;
-		
+
 		// Used to synchronize threads to prevent multiple simultaneous downloads
 		currentDownloads = Collections.synchronizedMap(new HashMap<String,Future<Response>>());
 	}
@@ -75,7 +78,7 @@ public class FileCache {
 				executor.shutdownNow(); // Cancel currently executing tasks
 				// Wait a while for tasks to respond to being cancelled
 				if (!executor.awaitTermination(1, TimeUnit.SECONDS))
-					System.err.println("Warning: Pool did not terminate");
+					log.warning("Warning: Pool did not terminate");
 			}
 		} catch (InterruptedException ie) {
 			// (Re-)Cancel if current thread also interrupted
@@ -85,94 +88,93 @@ public class FileCache {
 		}
 		executor = null;
 	}
-	
+
 	/**
 	 * Shut down background downloads
 	 */
 	@Override
 	protected void finalize() {
-		System.out.println("Finalizing FileCache");
 		if(shutdownExecutorOnExit) {
 			// If we're using our internal executor, shutdown threads
 			shutdown();
 		}
 	}
-	
+
 	/**
 	 * @return The cache directory
 	 */
 	public String getDir() {
 		return dir;
 	}
-	
+
 	/**
 	 * Downloads a file asynchronously
-	 * 
+	 *
 	 * @param filename relative filename
 	 * @param url
 	 * @return Whether the file is fully downloaded
 	 */
 	public synchronized boolean prefetch(String filename, URL url) {
-		
+
 		// Check if another thread is downloading
-		if(currentDownloads.containsKey(filename) && 
+		if(currentDownloads.containsKey(filename) &&
 				!currentDownloads.get(filename).isDone()  ) {
 			return false;
 		}
-		
+
 		// Check if it is already downloaded
 		File file = new File(this.dir,filename);
 		if(file.exists()) {
 			// Already cached
 			return true;
 		}
-	
+
 		// We are downloading
-		System.out.format("Downloading %s from %s%n",filename,url);
-	
+		log.info(String.format("Downloading %s from %s%n",filename,url));
+
 		if(executor == null) {
 			throw new RejectedExecutionException("FileCache is shutdown.");
 		}
 		Future<Response> response = executor.submit(new URLRequest(file,url));
-		
+
 		// Hold lock
 		currentDownloads.put(filename, response);
-		
+
 		return false;
 	}
 	/**
 	 * Writes a file asynchronously
-	 * 
+	 *
 	 * @param filename relative filename
 	 * @param in An input string with the file contents
 	 * @return Whether the file previously existed
 	 */
 	public synchronized boolean prefetch(String filename, InputStream in) {
-		
+
 		// Check if another thread is already writing
-		if(currentDownloads.containsKey(filename) && 
+		if(currentDownloads.containsKey(filename) &&
 				!currentDownloads.get(filename).isDone()  ) {
 			return false;
 		}
-		
+
 		// Check if it is already downloaded
 		File file = new File(this.dir,filename);
 		if(file.exists()) {
 			// Already cached
 			return true;
 		}
-		
+
 		if(executor == null) {
 			throw new RejectedExecutionException("FileCache is shutdown.");
 		}
 		Future<Response> response = executor.submit(new StreamRequest(file,in));
-		
+
 		// Hold lock
 		currentDownloads.put(filename, response);
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Sychronously create a file from the givin data, or return the cached version
 	 * @param filename Cache key
@@ -227,13 +229,13 @@ public class FileCache {
 			throw fnf;
 		}
 	}
-	
+
 	/**
 	 * Sychronously fetch a file from the cache.
-	 * 
+	 *
 	 * The file data must previously have been specified via a call to
 	 * <tt>prefetch(String,*)</tt>.
-	 * 
+	 *
 	 * @param filename Cache key
 	 * @param url Download source
 	 * @throws FileNotFoundException If the file was not prefetched
@@ -259,10 +261,10 @@ public class FileCache {
 			throw fnf;
 		}
 	}
-	
+
 	/**
 	 * remove a file from the cache
-	 * 
+	 *
 	 * @param filename
 	 * @return true if the file was successfully deleted
 	 */
@@ -271,10 +273,10 @@ public class FileCache {
 			// Cancel current download and remove tracking
 			Future<Response> response = currentDownloads.get(filename);
 			response.cancel(true);
-			
+
 			currentDownloads.remove(filename);
 		}
-		
+
 		// Delete the file
 		File f = new File(dir,filename);
 		return f.delete();
@@ -289,13 +291,13 @@ public class FileCache {
 		boolean avail = ! currentDownloads.containsKey(filename) || currentDownloads.get(filename).isDone();
 		return avail && new File(this.dir,filename).exists();
 	}
-	
+
 	protected class URLRequest implements Callable<Response> {
 	    private URL url;
 	    private File file;
 
 	    /**
-	     * 
+	     *
 	     * @param url
 	     * @param filename Absolute path; dir should already exist
 	     */
@@ -309,7 +311,7 @@ public class FileCache {
 	    	long startTime = System.currentTimeMillis();
 			BufferedInputStream in = new BufferedInputStream(url.openStream());
 			FileOutputStream out = new FileOutputStream(file);
-			
+
 			int i = 0;
 			byte[] bytesIn = new byte[1024];
 			while ((i = in.read(bytesIn)) >= 0) {
@@ -318,19 +320,19 @@ public class FileCache {
 			out.close();
 			in.close();
 
-			System.out.println(String.format("Downloaded %s. Took %.2f sec%n", 
+			System.out.println(String.format("Downloaded %s. Took %.2f sec%n",
 					file.toString(), (System.currentTimeMillis()-startTime)/1000.));
-			
+
 	        return new Response(file.toString());
 	    }
 	}
-	
+
 	protected class StreamRequest implements Callable<Response> {
 	    private InputStream in;
 	    private File file;
 
 	    /**
-	     * 
+	     *
 	     * @param in
 	     * @param filename Absolute path; dir should already exist
 	     */
@@ -342,7 +344,7 @@ public class FileCache {
 	    @Override
 	    public Response call() throws IOException {
 			FileOutputStream out = new FileOutputStream(file);
-			
+
 			int i = 0;
 			byte[] bytesIn = new byte[1024];
 			while ((i = in.read(bytesIn)) >= 0) {
@@ -354,7 +356,7 @@ public class FileCache {
 	        return new Response(file.toString());
 	    }
 	}
-	
+
 	protected class Response {
 	    private String filename;
 
@@ -378,7 +380,7 @@ public class FileCache {
 			dir.delete();
 		}
 		FileCache cache = new FileCache(dir.toString());
-		
+
 		// download some big things
 		try {
 			long start = System.currentTimeMillis();
@@ -387,7 +389,7 @@ public class FileCache {
 					new URL("ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/w100n40.Bathymetry.srtm"));
 			cache.prefetch("w140n40.Bathymetry.srtm",
 					new URL("ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/w140n40.Bathymetry.srtm"));
-			
+
 			int complete=0;
 			while(complete<3) {
 				if( (complete&1) == 0 && cache.isAvailable("w100n40.Bathymetry.srtm")) {
@@ -402,9 +404,8 @@ public class FileCache {
 				}
 			}
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 }

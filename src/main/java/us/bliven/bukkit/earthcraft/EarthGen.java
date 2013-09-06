@@ -36,7 +36,7 @@ public class EarthGen extends ChunkGenerator {
 		this.projection = projection;
 		this.elevation = elevation;
 		this.spawn = spawn;
-		this.log = Logger.getLogger("us.bliven.bukkit.earthcraft.EarthGen");
+		this.log = Logger.getLogger(EarthGen.class.getName());
 	}
 
 
@@ -77,7 +77,6 @@ public class EarthGen extends ChunkGenerator {
 				result[xyzToByte(x,y,z)] = (byte) Material.BEDROCK.getId();
 
 				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
-				//System.out.println("Height of chunk"+chunkx+","+chunkz+"="+height);
 				y++;
 				for(;y<height && y<256;y++) {
 					result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
@@ -160,16 +159,4 @@ public class EarthGen extends ChunkGenerator {
 		return spawn;
 	}
 
-
-	/*public static void main(String[] args) {
-		World world = new StubWorld();
-		EarthcraftPlugin plugin = new EarthcraftPlugin();
-		plugin.onEnable();
-		plugin.onLoad();
-			EarthGen gen = (EarthGen)plugin.getDefaultWorldGenerator("world", "foo");
-			int h;
-			h = gen.getBlockHeight(world,10,10);
-			System.out.println(h);
-
-	}*/
 }

@@ -1,4 +1,4 @@
-package us.bliven.bukkit.earthcraft.gis;
+package us.bliven.bukkit.earthcraft.demo;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -18,6 +18,10 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+
+import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
+import us.bliven.bukkit.earthcraft.gis.InterpolatingElevationCache;
+import us.bliven.bukkit.earthcraft.gis.SRTMPlusElevationProvider;
 
 import com.vividsolutions.jts.geom.Coordinate;
 

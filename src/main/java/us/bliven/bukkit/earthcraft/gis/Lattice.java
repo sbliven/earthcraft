@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package us.bliven.bukkit.earthcraft.gis;
 
@@ -13,8 +13,10 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * Represents a way to transform continuous coordinates to points on a discrete lattice.
- * 
+ *
  * Lattice points have integer coordinates starting with (0,0) at the origin.
+ *
+ * This class is mostly redundant to geotools' MapCoverage, and should possibly be replaced.
  */
 class Lattice {
 	private Coordinate origin; // coordinate of point (0,0)
@@ -27,19 +29,19 @@ class Lattice {
 
 	/**
 	 * Gets a list of points surrounding the query.
-	 * 
+	 *
 	 * If distance = 0, the closest lattice point to the query is returned.
 	 * If distance = 1, the 4 lattice points surrounding the query are returned.
 	 * If distance > 1, all points within (distance-1) manhattan units of
 	 * the central 4 lattice points are returned (2*d*(d-1) points overall).
-	 * 
+	 *
 	 * Points which lie along the grid are treated as belonging to the
 	 * next larger grid square.
-	 * 
+	 *
 	 * @param query A query point
-	 * @param distance 
-	 * @return 
-	 * @throws 
+	 * @param distance
+	 * @return
+	 * @throws
 	 */
 	public Set<Point> getNeighbors(Coordinate query, int distance) {
 		if(distance < 0) {
@@ -84,9 +86,9 @@ class Lattice {
 
 		return new Coordinate(x,y);
 	}
-	
+
 	/**
-	 * Helper method to get coordinates for a whole list. Calls 
+	 * Helper method to get coordinates for a whole list. Calls
 	 * {@link #getCoordinate(Point)} for each list element.
 	 * @param gridPoints
 	 * @return
