@@ -10,9 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
+import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.util.LRULinkedHashMap;
-import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.geometry.DirectPosition;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -28,14 +28,14 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 	private static final int THREADS = 2;
 
 	// LRU set of Grids storing the SMTP tiles (partially) in memory
-	private final LRULinkedHashMap<String,GridCoverage> grids;//a tile identifier -> Grid
+	private final LRULinkedHashMap<String,GridCoverage2D> grids;//a tile identifier -> Grid
 
 	private final boolean wrap;
 
 	protected Logger log;
 
 	private final ExecutorService executor;
-	private final Map<String,Future<GridCoverage>> currentGrids; // List of grids being loaded from memory
+	private final Map<String,Future<GridCoverage2D>> currentGrids; // List of grids being loaded from memory
 
 	protected GridCoverageElevationProvider() {
 		this(true);
@@ -43,8 +43,8 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 	protected GridCoverageElevationProvider(boolean wrap) {
 		this.executor = Executors.newFixedThreadPool(THREADS);
 
-		this.grids = new LRULinkedHashMap<String,GridCoverage>(GRID_CACHE_SIZE);
-		this.currentGrids = new HashMap<String,Future<GridCoverage>>();
+		this.grids = new LRULinkedHashMap<String,GridCoverage2D>(GRID_CACHE_SIZE);
+		this.currentGrids = new HashMap<String,Future<GridCoverage2D>>();
 
 		this.wrap = wrap;
 
@@ -52,7 +52,7 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 	}
 
 
-	public synchronized GridCoverage loadGrid(Coordinate coord) throws DataUnavailableException {
+	public synchronized GridCoverage2D loadGrid(Coordinate coord) throws DataUnavailableException {
 		// Get the tile prefix, eg 'w140n40'
 		String tile = getTileName(coord);
 
@@ -63,11 +63,11 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 
 		// Start asynchronous download, if needed
 		prefetchGrid(coord);
-		Future<GridCoverage> result = currentGrids.get(tile);
+		Future<GridCoverage2D> result = currentGrids.get(tile);
 
 		try {
 			// Wait for the download to finish & tile to load
-			GridCoverage coverage = result.get();
+			GridCoverage2D coverage = result.get();
 
 			grids.put(tile,coverage);
 		} catch (Exception e) {
@@ -120,7 +120,7 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 		}
 
 		// Create thread to load Grid
-		Future<GridCoverage> result = executor.submit( createTileLoader(coord) );
+		Future<GridCoverage2D> result = executor.submit( createTileLoader(coord) );
 
 		currentGrids.put(tile,result);
 		return false;
@@ -134,7 +134,7 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 	 */
 	protected abstract String getTileName(Coordinate coord);
 
-	protected abstract Callable<GridCoverage> createTileLoader(Coordinate coord);
+	protected abstract Callable<GridCoverage2D> createTileLoader(Coordinate coord);
 
 	/**
 	 * Gets elevation for a coordinate giving (lat,lon). Note that latitude
@@ -159,7 +159,7 @@ public abstract class GridCoverageElevationProvider extends AbstractElevationPro
 				return null;
 			}
 		}
-		GridCoverage grid = loadGrid(point);
+		GridCoverage2D grid = loadGrid(point);
 		// Change from (lat,lon) convention to (x,y)
 		DirectPosition pos = new DirectPosition2D(point.y,point.x);
 		double elev = grid.evaluate(pos,(double[])null)[0];

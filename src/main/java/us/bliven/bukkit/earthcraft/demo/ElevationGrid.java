@@ -20,7 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.InterpolatingElevationCache;
+import us.bliven.bukkit.earthcraft.gis.InterpolatedCoverageElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.SRTMPlusElevationProvider;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -54,9 +54,10 @@ public class ElevationGrid {
 		if(! (new File(dir)).exists()) {
 			dir = System.getProperty("java.io.tmpdir") + "SRTMPlus";
 		}
-		elevationProvider = new SRTMPlusElevationProvider(dir);
+		//elevationProvider = new SRTMPlusElevationProvider(dir);
 
-		elevationCache = new InterpolatingElevationCache(elevationProvider, new Coordinate(latRes,lonRes));
+		elevationCache = new InterpolatedCoverageElevationProvider(new SRTMPlusElevationProvider(dir));
+		//new InterpolatingElevationCache(elevationProvider, new Coordinate(latRes,lonRes));
 
 		Double[][] elevations = elevationGrid(elevationCache, south,north,west,east, latRes/2, lonRes/2);
 

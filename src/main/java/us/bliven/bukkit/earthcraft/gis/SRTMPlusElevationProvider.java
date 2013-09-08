@@ -13,7 +13,6 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.gce.gtopo30.GTopo30Reader;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.Envelope2D;
-import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.operation.TransformException;
@@ -348,7 +347,7 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 	}
 
 	@Override
-	protected Callable<GridCoverage> createTileLoader(Coordinate coord) {
+	protected Callable<GridCoverage2D> createTileLoader(Coordinate coord) {
 		// Get the tile prefix, eg 'w140n40'
 		final String tile = getTileName(coord);
 		final Envelope tileBounds = getTileEnvelope(coord);
@@ -373,7 +372,7 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 		return new GridLoader(tile, fileBase);
 	}
 
-	private final class GridLoader implements Callable<GridCoverage> {
+	private final class GridLoader implements Callable<GridCoverage2D> {
 		private final String tile;
 		private final String fileBase;
 
@@ -383,7 +382,7 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 		}
 
 		@Override
-		public GridCoverage call() throws Exception {
+		public GridCoverage2D call() throws Exception {
 
 			// fetch all the files synchronously
 			cache.fetch(fileBase+".hdr");
@@ -426,7 +425,7 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 			}
 
 			// load the SD grid
-			GridCoverage2D grid = (GridCoverage2D)srtm.loadGrid(new Coordinate(34,-117));
+			GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
 			GridGeometry2D geom = grid.getGridGeometry();
 			try {
 				DirectPosition origin = geom.gridToWorld(new GridCoordinates2D(0, 0));
