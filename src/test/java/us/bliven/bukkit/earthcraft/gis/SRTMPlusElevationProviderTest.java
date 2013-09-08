@@ -62,7 +62,7 @@ public class SRTMPlusElevationProviderTest {
 		 * It wraps around to 1,0 (cell 4800) in the northwest
 		 * It ends at 4799,5999 in the southeast
 		 */
-		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
+		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
 
 		GridCoordinates2D pos;
 		pos = new GridCoordinates2D(0,0);
@@ -99,13 +99,55 @@ public class SRTMPlusElevationProviderTest {
 		assertEquals(-4339,grid.evaluate(pos,(int[])null)[0]);
 	}
 
+	@Test
+	public void testAntarctica() throws Exception {
+		GridCoverage2D grid = srtm.loadGrid(new Coordinate(-70,-170));
+
+		/*
+		(0, 0)	0xf062	-3998
+		(1, 0)	0xf063	-3997
+		7199	0xede7	-4633
+		7200	0xf069	-3991
+		(0, 1)	0xf069	-3991
+		(0, 3199)	0x0b69	2921
+		(7199, 3199)	0x0993	2451
+		 */
+
+		GridCoordinates2D pos;
+		pos = new GridCoordinates2D(0,0);
+		assertEquals(-3998,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(1,0);
+		assertEquals(-3997,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(7199,0);
+		assertEquals(-4633,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(0,1);
+		assertEquals(-3991,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(0,3199);
+		assertEquals(2921,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(7199, 3199);
+		assertEquals(2451,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(0, 3599);
+		assertEquals(2774,grid.evaluate(pos,(int[])null)[0]);
+
+		pos = new GridCoordinates2D(7199, 3599);
+		assertEquals(2774,grid.evaluate(pos,(int[])null)[0]);
+
+
+	}
+
 	/**
 	 * Test that exceptions are thrown where expected
 	 * @throws Exception
 	 */
 	@Test
 	public void testMissingData() throws Exception {
-		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
+		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
 
 		GridCoordinates2D gridPos;
 		DirectPosition pos;
@@ -151,7 +193,7 @@ public class SRTMPlusElevationProviderTest {
 	@Test
 	public void testGridGeometry() throws Exception {
 		// load the SD grid
-		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
+		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
 		GridGeometry2D geom = grid.getGridGeometry();
 
 		GridCoordinates2D pos;

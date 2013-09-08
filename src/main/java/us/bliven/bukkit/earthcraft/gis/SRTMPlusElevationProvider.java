@@ -60,11 +60,18 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 		XDIM          0.00833333333333
 		YDIM          0.00833333333333
 		*/
-		//TODO Wrong for Antarctica
-		int nrows = 6000;
-		int ncols = 4800;
 		double lat = bounds.getMaximum(0);
 		double lon = bounds.getMinimum(1);
+
+		int nrows, ncols;
+		if(lat > -60 ) {
+			ncols = 4800;
+			nrows = 6000;
+		} else {
+			// Antarctic latitudes
+			ncols = 7200;
+			nrows = 3600;
+		}
 		double grid = 50./6000;
 
 		if(cache.isAvailable(filename)) {
