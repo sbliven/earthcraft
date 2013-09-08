@@ -83,18 +83,18 @@ public class EarthGen extends ChunkGenerator {
 
 				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
 				y++;
-				for(;y<height-1 && y<256;y++) {
+				for(;y<height && y<256;y++) {
 					result[xyzToByte(x,y,z)] = (byte) Material.DIRT.getId();
 				}
-				if(y==height-1 && y<256) {
-					if(y<seaLevel-1) {
+				if(y==height && y<256) {
+					if(y<seaLevel) {
 						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
 					} else {
 						result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
 					}
 					y++;
 				}
-				for(;y<seaLevel-1 && y<256 ;y++) {
+				for(;y<seaLevel && y<256 ;y++) {
 					result[xyzToByte(x,y,z)] = (byte) Material.STATIONARY_WATER.getId();
 				}
 			}
