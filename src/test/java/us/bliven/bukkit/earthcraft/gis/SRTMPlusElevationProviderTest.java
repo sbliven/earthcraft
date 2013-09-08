@@ -62,8 +62,8 @@ public class SRTMPlusElevationProviderTest {
 		 * It wraps around to 1,0 (cell 4800) in the northwest
 		 * It ends at 4799,5999 in the southeast
 		 */
-		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
-		
+		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
+
 		GridCoordinates2D pos;
 		pos = new GridCoordinates2D(0,0);
 		assertEquals(-4338,grid.evaluate(pos,(int[])null)[0]);
@@ -105,7 +105,7 @@ public class SRTMPlusElevationProviderTest {
 	 */
 	@Test
 	public void testMissingData() throws Exception {
-		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
+		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
 
 		GridCoordinates2D gridPos;
 		DirectPosition pos;
@@ -151,7 +151,7 @@ public class SRTMPlusElevationProviderTest {
 	@Test
 	public void testGridGeometry() throws Exception {
 		// load the SD grid
-		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
+		GridCoverage2D grid = (GridCoverage2D) srtm.loadGrid(new Coordinate(34,-117));
 		GridGeometry2D geom = grid.getGridGeometry();
 
 		GridCoordinates2D pos;

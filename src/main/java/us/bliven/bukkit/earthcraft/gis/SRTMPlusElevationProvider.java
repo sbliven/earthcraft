@@ -2,18 +2,10 @@ package us.bliven.bukkit.earthcraft.gis;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.logging.Logger;
 
 import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -21,7 +13,7 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.gce.gtopo30.GTopo30Reader;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.Envelope2D;
-import org.geotools.util.LRULinkedHashMap;
+import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.operation.TransformException;
@@ -34,132 +26,23 @@ import com.vividsolutions.jts.geom.Coordinate;
  * The Shuttle Radar Topography Mission (STRM) was a Nasa project
  * @author Spencer Bliven
  */
-public class SRTMPlusElevationProvider extends AbstractElevationProvider {
+public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 
 	//SMTP Plus FTP server
 	private static final String SMTP_PLUS_SERVER = "ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/";
-	//Number of tiles to store in memory simultaneously
-	private static final int GRID_CACHE_SIZE = 32; // Decrease to reduce memory use
 
 	// directory to store SMTP+ files
 	private final FileCache cache;
-	// LRU set of Grids storing the SMTP tiles (partially) in memory
-	private final LRULinkedHashMap<String,GridCoverage2D> grids;//a tile identifier -> Grid
-
-	private final boolean wrap;
-
-	protected Logger log;
-
-	private final ExecutorService executor;
-	private final Map<String,Future<?>> currentGrids; // List of grids being loaded from memory
 
 	public SRTMPlusElevationProvider(String dir) {
 		this(dir,true);
 	}
 	public SRTMPlusElevationProvider(String dir, boolean wrap) {
-		this.executor = Executors.newFixedThreadPool(2);
+		super(wrap);
 
-		this.cache = new FileCache(dir,executor);
-
-		this.grids = new LRULinkedHashMap<String,GridCoverage2D>(GRID_CACHE_SIZE);
-		this.currentGrids = new HashMap<String,Future<?>>();
-
-		this.wrap = wrap;
-
-		this.log = Logger.getLogger(SRTMPlusElevationProvider.class.getName());
+		this.cache = new FileCache(dir,getExecutor());
 	}
 
-
-
-	public GridCoverage2D loadGrid(Coordinate coord) throws DataUnavailableException {
-		// Get the tile prefix, eg 'w140n40'
-		String tile = getSRTMPlusTile(coord);
-
-		// check if the grid is already cached
-		if(grids.containsKey(tile)) {
-			return grids.get(tile);
-		}
-
-		// Start asynchronous download, if needed
-		prefetchGrid(coord);
-		Future<?> result = currentGrids.get(tile);
-
-		try {
-			// Wait for the download to finish & tile to load
-			result.get();
-		} catch (Exception e) {
-			throw new DataUnavailableException("Unable to load grid "+tile,e);
-		}
-
-		return grids.get(tile);
-	}
-
-
-	/**
-	 * Shut down background downloads
-	 */
-	@Override
-	protected void finalize() {
-		executor.shutdownNow(); // kill waiting thread loads
-	}
-
-
-	/**
-	 * Helper function for managing the thread pool
-	 *
-	 * @param tile
-	 * @return true if the tile is fully loaded, false if the tile is unloaded or in progress
-	 */
-	private synchronized boolean isAvailable(String tile) {
-		boolean avail = !currentGrids.containsKey(tile) || currentGrids.get(tile).isDone();
-		return avail && grids.containsKey(tile);
-	}
-
-	/**
-	 * Pre-fetch files describing a grid tile
-	 * @param coord A coordinate in the tile
-	 * @return
-	 * @throws FileNotFoundException
-	 * @throws IOException
-	 */
-	public synchronized boolean prefetchGrid(Coordinate coord) throws DataUnavailableException {
-
-		// Get the tile prefix, eg 'w140n40'
-		final String tile = getSRTMPlusTile(coord);
-		final Envelope tileBounds = getSRTMPlusEnvelope(coord);
-
-		// check if the grid is already cached
-		if( isAvailable(tile) ) {
-			return true;
-		}
-		// already being loaded
-		if(  currentGrids.containsKey(tile) ) {
-			return false;
-		}
-
-		// file to fetch from ftp
-		final String fileBase = tile + ".Bathymetry.srtm";
-
-		// Download the data files asynchronously
-		// Should take about 40s to download dem file
-		try {
-			cache.prefetch(fileBase+".dem", new URL(SMTP_PLUS_SERVER+fileBase) );
-			cache.prefetch(fileBase+".ers", new URL(SMTP_PLUS_SERVER+fileBase+".ers") );
-
-			// Create bogus GTopo30 files for the inflexible Reader
-			createHDR(fileBase+".hdr",tileBounds);
-			createPRJ(fileBase+".prj");
-			createSTX(fileBase+".stx");
-		} catch (MalformedURLException e) {
-			throw new RuntimeException("Error�bad URL for downloading tile "+tile,e);
-		}
-
-		// Create thread to load Grid
-		Future<?> result = executor.submit(new GridLoader(tile, fileBase));
-
-		currentGrids.put(tile,result);
-		return false;
-	}
 
 	private synchronized void createHDR(String filename,Envelope bounds) {
 		/*
@@ -260,7 +143,8 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	 * @param coord
 	 * @return
 	 */
-	private String getSRTMPlusTile(Coordinate coord) {
+	@Override
+	protected String getTileName(Coordinate coord) {
 		/*
 		 *              Latitude          Longitude
 			 Tile    Minimum  Maximum   Minimum  Maximum
@@ -376,7 +260,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 	 * @param coord
 	 * @return
 	 */
-	private Envelope getSRTMPlusEnvelope(Coordinate coord) {
+	protected Envelope getTileEnvelope(Coordinate coord) {
 		double lat = coord.x;
 		double lon = coord.y;
 
@@ -463,37 +347,33 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 		return env;
 	}
 
-	/**
-	 * Gets elevation for a coordinate giving (lat,lon). Note that latitude
-	 * corresponds to the 'x' member of each coordinate, despite any unfortunate
-	 * clash with the use of x for horizontal cartesian coordinates.
-	 * @param l
-	 * @return
-	 * @throws DataUnavailableException If a non-recoverable error stops the data
-	 *  from being accessed. Less serious errors simply result in null elevations
-	 *  being returned.
-	 * @throws
-	 */
 	@Override
-	public Double fetchElevation(Coordinate point) throws DataUnavailableException {
-		if( wrap ) {
-			// Convert coordinates to valid lat=(-90,90], lon=[-180,180)
-			point = ProjectionTools.wrapCoordinate(point);
-		} else {
-			if( point.x <= -90 || 90 < point.x ||
-					point.y < -180 || 180 <= point.y ) {
-				// Coordinates off the map
-				return null;
-			}
+	protected Callable<GridCoverage> createTileLoader(Coordinate coord) {
+		// Get the tile prefix, eg 'w140n40'
+		final String tile = getTileName(coord);
+		final Envelope tileBounds = getTileEnvelope(coord);
+
+		// file to fetch from ftp
+		final String fileBase = tile + ".Bathymetry.srtm";
+
+		// Download the data files asynchronously
+		// Should take about 40s to download dem file
+		try {
+			cache.prefetch(fileBase+".dem", new URL(SMTP_PLUS_SERVER+fileBase) );
+			cache.prefetch(fileBase+".ers", new URL(SMTP_PLUS_SERVER+fileBase+".ers") );
+
+			// Create bogus GTopo30 files for the inflexible Reader
+			createHDR(fileBase+".hdr",tileBounds);
+			createPRJ(fileBase+".prj");
+			createSTX(fileBase+".stx");
+		} catch (MalformedURLException e) {
+			throw new RuntimeException("Error: bad URL for downloading tile "+tile,e);
 		}
-		GridCoverage2D grid = loadGrid(point);
-		// Change from (lat,lon) convention to (x,y)
-		DirectPosition pos = new DirectPosition2D(point.y,point.x);
-		double elev = grid.evaluate(pos,(double[])null)[0];
-		return elev;
+
+		return new GridLoader(tile, fileBase);
 	}
 
-	private final class GridLoader implements Callable<Object> {
+	private final class GridLoader implements Callable<GridCoverage> {
 		private final String tile;
 		private final String fileBase;
 
@@ -503,7 +383,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 		}
 
 		@Override
-		public Object call() throws Exception {
+		public GridCoverage call() throws Exception {
 
 			// fetch all the files synchronously
 			cache.fetch(fileBase+".hdr");
@@ -520,15 +400,11 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			GTopo30Reader reader = new GTopo30Reader( demFile );
 			GridCoverage2D coverage = reader.read(null);
 
-			synchronized(SRTMPlusElevationProvider.this) {
-				grids.put(tile,coverage);
-			}
-
 			log.info(String.format("Loaded grid %s. Took %f s%n",
 					tile, (System.currentTimeMillis()-start)/1000.));
 
 			// Dummy result object
-			return null;
+			return coverage;
 		}
 	}
 
@@ -550,7 +426,7 @@ public class SRTMPlusElevationProvider extends AbstractElevationProvider {
 			}
 
 			// load the SD grid
-			GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
+			GridCoverage2D grid = (GridCoverage2D)srtm.loadGrid(new Coordinate(34,-117));
 			GridGeometry2D geom = grid.getGridGeometry();
 			try {
 				DirectPosition origin = geom.gridToWorld(new GridCoordinates2D(0, 0));
