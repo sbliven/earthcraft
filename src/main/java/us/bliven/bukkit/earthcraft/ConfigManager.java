@@ -8,6 +8,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.EquirectangularProjection;
 import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
+import us.bliven.bukkit.earthcraft.gis.GridCoverageElevationProvider;
+import us.bliven.bukkit.earthcraft.gis.InterpolatedCoverageElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.InterpolatingElevationCache;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.OpenElevationConnector;
@@ -93,6 +95,8 @@ public class ConfigManager {
 			return createFlatElevationProvider(params);
 		} else if( type.equalsIgnoreCase("SRTMPlusElevationProvider")) {
 			return createSRTMPlusElevationProvider(params,wrap);
+		} else if( type.equalsIgnoreCase("InterpolatedCoverageElevationProvider")) {
+			return createInterpolatedCoverageElevationProvider(params,wrap);
 		} else {
 			// Default to flat world
 			log.severe("Error: unknown elevation type "+type);
@@ -100,10 +104,32 @@ public class ConfigManager {
 		}
 	}
 
-	private ElevationProvider createSRTMPlusElevationProvider(
+	private SRTMPlusElevationProvider createSRTMPlusElevationProvider(
 			ConfigurationSection params, boolean wrap) {
 		String dir = params.getString("cache");
 		return new SRTMPlusElevationProvider(dir,wrap);
+	}
+	private InterpolatedCoverageElevationProvider createInterpolatedCoverageElevationProvider(
+			ConfigurationSection params, boolean wrap) {
+		GridCoverageElevationProvider provider = createGridCoverageElevationProvider(
+				params.getConfigurationSection("provider"), wrap );
+		return new InterpolatedCoverageElevationProvider(provider);
+	}
+
+	private GridCoverageElevationProvider createGridCoverageElevationProvider(
+			ConfigurationSection elevation, boolean wrap) {
+		String type = elevation.getString("type");
+		ConfigurationSection params = elevation.getConfigurationSection("parameters");
+
+		if( type.equalsIgnoreCase("SRTMPlusElevationProvider")) {
+			return createSRTMPlusElevationProvider(params,wrap);
+		} else if( type.equalsIgnoreCase("InterpolatedCoverageElevationProvider")) {
+			return createInterpolatedCoverageElevationProvider(params,wrap);
+		} else {
+			// Default to flat world
+			log.severe("Error: unknown elevation type "+type);
+			return null;
+		}
 	}
 
 	private ElevationProvider createFlatElevationProvider(
