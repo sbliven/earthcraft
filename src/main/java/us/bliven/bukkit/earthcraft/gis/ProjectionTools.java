@@ -52,6 +52,29 @@ public final class ProjectionTools {
 		int globelon = (int)Math.floor((pos.y+180)/360.);
 		return new Coordinate(globelat,globelon);
 	}
+	public static String latlonelevString(Coordinate coord) {
+		return latlonelevString(coord,0,0,0);
+	}
+	public static String latlonelevString(Coordinate coord,
+			Coordinate localScale) {
+		int latprec = (int)Math.ceil(Math.log10(2*localScale.x));
+		int lonprec = (int)Math.ceil(Math.log10(2*localScale.y));
+		int elevprec = (int)Math.ceil(Math.log10(2*localScale.z));
+		return latlonelevString(coord, latprec,lonprec,elevprec);
+	}
+	public static String latlonelevString(Coordinate coord,
+			int latprec, int lonprec, int elevprec) {
+		String latlon = latlonString(coord,latprec,lonprec);
+		if( !Double.isNaN(coord.z) ) {
+			if( elevprec < 1) {
+				return String.format("%s %fm",latlon,coord.z);
+			} else {
+				return String.format("%s %."+elevprec+"fm",latlon,coord.z);
+			}
+		} else {
+			return latlon;
+		}
+	}
 
 	/**
 	 * Convert a coordinate into a latitude-longitude string.
@@ -62,11 +85,26 @@ public final class ProjectionTools {
 	 * @param coord
 	 */
 	public static String latlonString(Coordinate coord) {
+		return latlonString(coord,0,0);
+	}
+	/**
+	 *
+	 * @param coord Coordinate to express
+	 * @param latprec Number of digits to print for latitude
+	 * @param lonprec Number of digits to print for longitude
+	 * @param elevprec Number of digits to print for elevation
+	 * @return
+	 */
+	public static String latlonString(Coordinate coord, int latprec, int lonprec) {
 		Coordinate wrappedPos = wrapCoordinate(coord);
 		Coordinate globePos = getGlobeCoordinate(coord);
 
 		StringBuilder str = new StringBuilder();
-		str.append(Math.abs(wrappedPos.x));
+		if( latprec < 1) {
+			str.append(Math.abs(wrappedPos.x));
+		} else {
+			str.append(String.format("%."+latprec+"f", Math.abs(wrappedPos.x)));
+		}
 		if(wrappedPos.x >=0) {
 			str.append('N');
 		} else {
@@ -80,7 +118,12 @@ public final class ProjectionTools {
 
 		str.append(' ');
 
-		str.append(Math.abs(wrappedPos.y));
+		if( lonprec < 1) {
+			str.append(Math.abs(wrappedPos.y));
+		} else {
+			str.append(String.format("%."+lonprec+"f", Math.abs(wrappedPos.y)));
+		}
+
 		if(wrappedPos.y >= 0) {
 			str.append('E');
 		} else {
@@ -94,5 +137,7 @@ public final class ProjectionTools {
 
 		return str.toString();
 	}
+
+
 
 }

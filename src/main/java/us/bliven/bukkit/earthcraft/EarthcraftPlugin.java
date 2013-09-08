@@ -13,6 +13,7 @@ import javax.media.jai.OperationRegistry;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,6 +35,9 @@ public class EarthcraftPlugin extends JavaPlugin {
 
 	// Create a new EarthGen for each world to allow configurability
 	private final Map<String,EarthGen> generators = new HashMap<String, EarthGen>();
+
+	// Permissions
+	static final String PERM_TP_OTHERS = "earthcraft.tp.others";
 
     @Override
 	public void onEnable(){
@@ -86,9 +90,11 @@ public class EarthcraftPlugin extends JavaPlugin {
     	EarthGen gen = new EarthGen(projection,provider,spawn);
 
     	Location spawnLoc = gen.getFixedSpawnLocation(null, null);
-    	log.info("Spawn is at block "+spawnLoc);
+    	Coordinate spawn2 = projection.locationToCoordinate(spawnLoc);
+    	log.info("Spawn is at block "+spawnLoc+" which would be "+spawn2);
 
     	generators.put(worldName,gen);
+    	log.info("Creating new Earthcraft Generator for "+worldName);
 
     	return gen;
     }
@@ -161,13 +167,101 @@ public class EarthcraftPlugin extends JavaPlugin {
     }
 
 
+    /**
+     * Handle tp command
+     *
+     * usage: /earthtp [player] lat lon
+     * @param sender
+     * @param args
+     * @return
+     */
 	private boolean onTPCommand(CommandSender sender, String[] args) {
-		//todo check permissions
-		log.info(String.format("%s ectp! %s",sender.getName(),Arrays.toString(args)));
+		if(args.length < 2 || 3 < args.length) {
+			return false;
+		}
+
+		// Determine the teleported player
+		int argi = 0;
+		Player player;
+		World world;
+
+		if(args.length == 2) {
+			// Player is itself
+			if( ! (sender instanceof Player) ) {
+				sender.sendMessage("Error: Player required from console");
+				return false;
+			}
+			player = (Player)sender;
+			world = player.getWorld();
+		} else {
+			// Use specified player
+			String playername = args[argi++];
+			player = Bukkit.getPlayer(playername);
+			if( !player.isOnline() ) {
+				sender.sendMessage("Error: "+playername+" is offline");
+				return true;
+			}
+			// If sender is in a Earthcraft world, teleport use that world
+			if( sender instanceof Player) {
+				world = ((Player)sender).getWorld();
+				if( ! generators.containsKey(world.getName()) ) {
+					world = player.getWorld();
+				}
+			} else {
+				world = player.getWorld();
+			}
+		}
+
+		// check for permission to teleport others
+		if(!sender.equals(player)) {
+			if( ! sender.hasPermission(PERM_TP_OTHERS) ) {
+				sender.sendMessage("You don't have permission to teleport others. Need "+PERM_TP_OTHERS);
+			}
+		}
+
+
+		double lat,lon;
+		try {
+			lat = Double.parseDouble(args[argi++]);
+			lon = Double.parseDouble(args[argi++]);
+		} catch( NumberFormatException e) {
+			sender.sendMessage("Error: unable to parse coordinate");
+			return false;
+		}
+
+		Coordinate coord = new Coordinate(lat,lon);
+
+
+		EarthGen gen = generators.get(world.getName());
+		if( gen == null) {
+			sender.sendMessage(world.getName()+" is not an Earthcraft world.");
+			return false;
+		}
+
+		//coord.z = gen.getElevationProvider().fetchElevation(coord);
+
+		MapProjection proj = gen.getMapProjection();
+
+		Location loc = proj.coordinateToLocation(player.getWorld(), coord);
+
+		if(Double.isNaN(loc.getZ()) ){
+			loc.setZ(200);
+		}
+		log.info("Teleporting "+player.getName()+" to "+loc);
+		player.teleport(loc);
+
 		return true;
 	}
 
 
+	/**
+	 * Handle pos command
+	 *
+	 * usage: /earthpos [player]
+	 * @param sender
+	 * @param args
+	 * @return
+	 */
 	private boolean onPosCommand(CommandSender sender, String[] args) {
 		if(args.length > 1) {
 			return false;
@@ -203,8 +297,9 @@ public class EarthcraftPlugin extends JavaPlugin {
 
 		Coordinate coord = proj.locationToCoordinate(loc);
 
+		Coordinate localScale = proj.getLocalScale(coord);
 		String message = String.format("%s located at %s", player.getName(),
-				ProjectionTools.latlonString(coord));
+				ProjectionTools.latlonelevString(coord,localScale));
 		sender.sendMessage(message);
 		return true;
 	}

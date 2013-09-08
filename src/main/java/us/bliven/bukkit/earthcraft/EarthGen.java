@@ -31,12 +31,19 @@ public class EarthGen extends ChunkGenerator {
 
 	private final int defaultBlockHeight = 1;
 
+	private double seaLevel; // 1st block above water
+
 	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
 		this.projection = projection;
 		this.elevation = elevation;
 		this.spawn = spawn;
 		this.log = Logger.getLogger(EarthGen.class.getName());
+
+		Location origin = projection.coordinateToLocation(null, new Coordinate(0,0,0));
+		this.seaLevel = origin.getY();
+
+		log.info("Sea level at "+seaLevel);
 	}
 
 
@@ -68,8 +75,6 @@ public class EarthGen extends ChunkGenerator {
 		byte[] result = new byte[16*16*chunkHeight];
 
 
-
-
 		for(int x=0; x<16; x++){
 			for(int z=0; z<16; z++) {
 				int y = 0;
@@ -78,8 +83,19 @@ public class EarthGen extends ChunkGenerator {
 
 				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
 				y++;
-				for(;y<height && y<256;y++) {
-					result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
+				for(;y<height-1 && y<256;y++) {
+					result[xyzToByte(x,y,z)] = (byte) Material.DIRT.getId();
+				}
+				if(y==height-1 && y<256) {
+					if(y<seaLevel-1) {
+						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
+					} else {
+						result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
+					}
+					y++;
+				}
+				for(;y<seaLevel-1 && y<256 ;y++) {
+					result[xyzToByte(x,y,z)] = (byte) Material.STATIONARY_WATER.getId();
 				}
 			}
 		}
@@ -128,7 +144,6 @@ public class EarthGen extends ChunkGenerator {
 	}
 
 
-
 	@Override
 	public Location getFixedSpawnLocation(World world, Random random) {
 		Double elev;
@@ -137,7 +152,7 @@ public class EarthGen extends ChunkGenerator {
 		} catch (DataUnavailableException e) {
 			elev = Double.NaN;
 		}
-		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,elev,spawn.z));
+		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,spawn.y,elev));
 		if(Double.isNaN(spawnloc.getY())) {
 			spawnloc.setY( defaultBlockHeight );
 		}
