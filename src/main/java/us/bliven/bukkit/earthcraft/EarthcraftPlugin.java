@@ -244,8 +244,8 @@ public class EarthcraftPlugin extends JavaPlugin {
 
 		Location loc = proj.coordinateToLocation(player.getWorld(), coord);
 
-		if(Double.isNaN(loc.getZ()) ){
-			loc.setZ(200);
+		if(Double.isNaN(loc.getY()) ){
+			loc.setY(200);
 		}
 		log.info("Teleporting "+player.getName()+" to "+loc);
 		player.teleport(loc);
