@@ -15,6 +15,7 @@ import org.bukkit.generator.ChunkGenerator;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
+import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -31,7 +32,9 @@ public class EarthGen extends ChunkGenerator {
 
 	private final int defaultBlockHeight = 1;
 
-	private double seaLevel; // 1st block above water
+	private int seaLevel; // 1st block above water
+	private int sandLevel; // 1st block above the beach
+
 
 	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
@@ -41,9 +44,13 @@ public class EarthGen extends ChunkGenerator {
 		this.log = Logger.getLogger(EarthGen.class.getName());
 
 		Location origin = projection.coordinateToLocation(null, new Coordinate(0,0,0));
-		this.seaLevel = origin.getY();
+		this.seaLevel = origin.getBlockY();
+
+		Location sand = projection.coordinateToLocation(null, new Coordinate(0,0,2));
+		this.sandLevel = sand.getBlockY();
 
 		log.info("Sea level at "+seaLevel);
+		log.info("Beach level at "+sandLevel);
 	}
 
 
@@ -80,21 +87,35 @@ public class EarthGen extends ChunkGenerator {
 				int y = 0;
 				//This will set the floor of each chunk at bedrock level to bedrock
 				result[xyzToByte(x,y,z)] = (byte) Material.BEDROCK.getId();
+				y++;
 
 				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
-				y++;
-				for(;y<height && y<256;y++) {
-					result[xyzToByte(x,y,z)] = (byte) Material.DIRT.getId();
+
+				int stoneHeight = height - 16;
+
+				for(;y<stoneHeight; y++) {
+					result[xyzToByte(x,y,z)] = (byte) Material.STONE.getId();
 				}
-				if(y==height && y<256) {
-					if(y<seaLevel) {
-						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
-					} else {
-						result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
+
+				if( height > this.sandLevel ) {
+					for(;y< height-1;y++) {
+						result[xyzToByte(x,y,z)] = (byte) Material.DIRT.getId();
 					}
-					y++;
+					if(y<height) {
+						result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
+						y++;
+					}
+
+				} else {
+					if( y < height-1 ) {
+						result[xyzToByte(x,y,z)] = (byte) Material.SANDSTONE.getId();
+						y++;
+					}
+					for(;y< height;y++) {
+						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
+					}
 				}
-				for(;y<seaLevel && y<256 ;y++) {
+				for(;y<seaLevel;y++) {
 					result[xyzToByte(x,y,z)] = (byte) Material.STATIONARY_WATER.getId();
 				}
 			}
@@ -125,20 +146,35 @@ public class EarthGen extends ChunkGenerator {
 			}
 
 		} catch (DataUnavailableException e) {
+			// Severe but expected exception
 			log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
+			coord.z = Double.NaN;
+		} catch (Exception e) {
+			// Unexpected exception; indicates a bug
+			log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
+					worldx + "," + worldz +
+					" (" + ProjectionTools.latlonString(coord) + ")", e);
 			coord.z = Double.NaN;
 		}
 		// translate elevation to blocks
 		root = projection.coordinateToLocation(world, coord);
+
 		if(root.getY() == Double.NaN ) {
 			height = defaultBlockHeight;
 		} else {
-			height = (int) Math.floor(root.getY()+1);
+			height = root.getBlockY();
 		}
 
 		if(height>world.getMaxHeight()) {
 			height = world.getMaxHeight();
 		}
+
+		if(worldx == -170000 && worldz == -60000) {
+			log.info(String.format("Height at %d,%d (%s) = %f -> %d (Maybe %d?)",
+					worldx,worldz, ProjectionTools.latlonString(coord),
+					root.getY(), height, root.getBlockY()) );
+		}
+
 
 		return height;
 	}

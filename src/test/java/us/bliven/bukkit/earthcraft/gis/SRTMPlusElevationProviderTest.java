@@ -309,4 +309,18 @@ public class SRTMPlusElevationProviderTest {
 
 	}
 
+	@Test
+	public void testAlaska() throws Exception {
+		double elev;
+		Coordinate pos;
+
+		pos = new Coordinate(60,-170);
+		elev = srtm.fetchElevation(pos);
+		assertEquals(-46,elev,1e-6);
+
+		ElevationProvider interp = new InterpolatedCoverageElevationProvider(srtm);
+
+		elev = interp.fetchElevation(pos);
+		assertEquals(-46,elev,1e-6);
+	}
 }
