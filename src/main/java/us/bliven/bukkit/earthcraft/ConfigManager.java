@@ -61,6 +61,15 @@ public class ConfigManager {
 		// TODO set defaults
 		Coordinate origin = createCoordinate(parameters.getConfigurationSection("origin"));
 		Coordinate scale = createCoordinate(parameters.getConfigurationSection("scale"));
+		if( Double.isNaN(scale.z)) {
+			log.warning("No elevation scale set, using 1 m/block.");
+			scale.z = 1.0;
+		}
+		if( Double.isNaN(origin.z) ) {
+			// If no elevation, calculate from sea level
+			int sea = parameters.getInt("origin.seaLevel",64);
+			origin.z = -sea*scale.z;
+		}
 
 		return new EquirectangularProjection(origin,scale);
 	}
