@@ -201,25 +201,25 @@ public class SRTMPlusElevationProviderTest {
 
 		pos = new GridCoordinates2D(0, 0);
 		result = geom.gridToWorld(pos);
-		System.out.println(geom.gridToWorld(pos));
+		//System.out.println(geom.gridToWorld(pos));
 		assertEquals(-140.+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(40.-d/2, result.getOrdinate(1),1e-5);
 
 		pos = new GridCoordinates2D(4799, 0);
 		result = geom.gridToWorld(pos);
-		System.out.println(geom.gridToWorld(pos));
+		//System.out.println(geom.gridToWorld(pos));
 		assertEquals(-100.-d+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(40.-d/2, result.getOrdinate(1),1e-5);
 
 		pos = new GridCoordinates2D(0, 1);
 		result = geom.gridToWorld(pos);
-		System.out.println(geom.gridToWorld(pos));
+		//System.out.println(geom.gridToWorld(pos));
 		assertEquals(-140.+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(40.-d-d/2, result.getOrdinate(1),1e-5);
 
 		pos = new GridCoordinates2D(4799,5999);
 		result = geom.gridToWorld(pos);
-		System.out.println(geom.gridToWorld(pos));
+		//System.out.println(geom.gridToWorld(pos));
 		assertEquals(-100.-d+d/2, result.getOrdinate(0),1e-5);
 		assertEquals(-10+d-d/2, result.getOrdinate(1),1e-5);
 
@@ -245,6 +245,32 @@ public class SRTMPlusElevationProviderTest {
 		pos = geom.worldToGrid(result);
 		assertEquals(1, pos.getCoordinateValue(0));
 		assertEquals(1, pos.getCoordinateValue(1));
+
+
+
+		grid = srtm.loadGrid(new Coordinate(-70,-60));
+		geom = grid.getGridGeometry();
+
+		pos = new GridCoordinates2D(0,0);
+		result = geom.gridToWorld(pos);
+		assertEquals(-60.+d/2, result.getOrdinate(0),1e-5);
+		assertEquals(-60-d/2, result.getOrdinate(1),1e-5);
+
+		result = new DirectPosition2D(-60+d/2,-60-d/2);
+		pos = geom.worldToGrid(result);
+		assertEquals(0, pos.getCoordinateValue(0));
+		assertEquals(0, pos.getCoordinateValue(1));
+
+		result = new DirectPosition2D(-60,-60);
+		pos = geom.worldToGrid(result);
+		assertEquals(0, pos.getCoordinateValue(0));
+		assertEquals(0, pos.getCoordinateValue(1));
+
+		result = new DirectPosition2D(-60,-70);
+		pos = geom.worldToGrid(result);
+		assertEquals(0, pos.getCoordinateValue(0));
+		assertEquals(1200, pos.getCoordinateValue(1));
+
 	}
 
 	/**
@@ -302,6 +328,12 @@ public class SRTMPlusElevationProviderTest {
 		expecteds.add(result);
 		assertEquals(-4428.,result,1e-6);
 
+		pos = new Coordinate(-70, -60);//1,1
+		result = srtm.fetchElevation(pos);
+		poses.add(pos);
+		expecteds.add(result);
+		assertEquals(-584.,result,1e-6);
+
 		List<Double> results = srtm.fetchElevations(poses);
 		for(int i=0;i<expecteds.size();i++) {
 			assertEquals(expecteds.get(i), results.get(i),1e-6);
@@ -317,11 +349,6 @@ public class SRTMPlusElevationProviderTest {
 		pos = new Coordinate(60,-170);
 		elev = srtm.fetchElevation(pos);
 		assertEquals(-46,elev,1e-6);
-
-		ElevationProvider interp = new InterpolatedCoverageElevationProvider(srtm);
-
-		elev = interp.fetchElevation(pos);
-		assertEquals(-46,elev,1e-6);
 	}
 
 	/**
@@ -335,19 +362,27 @@ public class SRTMPlusElevationProviderTest {
 		double elev;
 		Coordinate pos;
 
-		ElevationProvider interp = new InterpolatedCoverageElevationProvider(srtm);
-
 		pos = new Coordinate(60,-180);
-		elev = interp.fetchElevation(pos);
+		elev = srtm.fetchElevation(pos);
 		assertEquals(-2638.,elev,1e-6);
 
 		pos = new Coordinate(60,180);
-		elev = interp.fetchElevation(pos);
+		elev = srtm.fetchElevation(pos);
 		assertEquals(-2638.,elev,1e-6);
 
 		pos = new Coordinate(63.370000000000005,-180.0);
-		elev = interp.fetchElevation(pos);
+		elev = srtm.fetchElevation(pos);
 		assertEquals(-65.,elev,1e-6);
+
+		pos = new Coordinate(-180.,-60.);
+		elev = srtm.fetchElevation(pos);
+		assertEquals(140.0, elev, 1e-6);
+
+		pos = new Coordinate(-69.7,-60.);
+		elev = srtm.fetchElevation(pos);
+
+		pos = new Coordinate(110.3,-60.);
+		elev = srtm.fetchElevation(pos);
 
 		//System.out.println(elev);
 	}

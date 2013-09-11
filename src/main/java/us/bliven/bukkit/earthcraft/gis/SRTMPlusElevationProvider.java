@@ -93,8 +93,12 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 		contents.append("TOTALROWBYTES "+(ncols*2)+eol);
 		contents.append("BANDGAPBYTES  0"+eol);
 		contents.append("NODATA        -9999"+eol);
-		contents.append("ULXMAP        "+(lon+grid/2)+eol);
-		contents.append("ULYMAP        "+(lat-grid/2)+eol);
+		// Storing floats as strings is always problematic. Err a bit on the safe
+		// side by subtracting 1e-14, since nice round numbers are used more than
+		// their slightly smaller counterparts.
+		// TODO Needs an actual fix
+		contents.append("ULXMAP        "+(lon+grid/2-1e-13)+eol);
+		contents.append("ULYMAP        "+(lat-grid/2+1e-13)+eol);
 		contents.append("XDIM          "+grid+eol);
 		contents.append("YDIM          "+grid+eol);
 
@@ -373,7 +377,7 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 			createPRJ(fileBase+".prj");
 			createSTX(fileBase+".stx");
 		} catch (MalformedURLException e) {
-			throw new RuntimeException("Error: bad URL for downloading tile "+tile,e);
+			throw new RuntimeException("[Bug] bad URL for downloading tile "+tile,e);
 		}
 
 		return new GridLoader(tile, fileBase);
