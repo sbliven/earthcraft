@@ -406,6 +406,24 @@ public class SRTMPlusElevationProvider extends GridCoverageElevationProvider {
 
 			File demFile = new File(cache.getDir(),fileBase+".dem");
 
+			// Check for cache errors
+			if( !demFile.exists() ) {
+				log.severe("[Bug] File "+demFile+" not found in cache.");
+			} else if(	!(
+					demFile.length() == 2l*6000*4800 || // typical tiles
+					demFile.length() == 2l*7200*3600 // Antarctic tiles
+					) )
+			{
+				log.severe("Error downloading "+demFile+". Size is "+demFile.length()+". 1 Attempt remaining. If error persist, delete it manually.");
+				boolean deleted = cache.delete(fileBase+".dem");
+				if(deleted) {
+					cache.fetch(fileBase+".dem");
+					demFile = new File(cache.getDir(),fileBase+".dem");
+				} else {
+					log.severe("Unable to delete "+fileBase+".dem");
+				}
+			}
+
 			// Load the grid into memory
 			GTopo30Reader reader = new GTopo30Reader( demFile );
 			GridCoverage2D coverage = reader.read(null);
