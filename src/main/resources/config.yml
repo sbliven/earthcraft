@@ -7,56 +7,72 @@ worlds:
         origin:
           # location of the block (0,0,0)
           # lat/lon are in degrees, elev in meters
-          lat: 32.73
-          lon: -117.26
-          elev: -40.0
+          lat: 0
+          lon: 0
+          #elev: -40.0
+          #elev: -2000.0
+          seaLevel: 64 # blocks; height of first dry block
         scale:
           # Scale of the world
           # lat/lon are in degrees/block, elev in m/block
-          lat: .001
-          lon: .001
-          elev: 1
+          lat: .1
+          lon: .1
+          elev: 100
+          #lat: .001
+          #lon: .001
+          #elev: 10
+          #lat: 8.99928e-6 # 1 m/block
+          #lon: 7.632e-6 # 1m/block * cos(32 deg)
+          #elev: 1
     spawn:
       # location of the spawn point, in degrees
       lat: 32.73
       lon: -117.26
+      #lat: 60.00
+      #lon: -180.00
     sources: # data sources
       elevation: # source for elevation data
         # A cache to wrap another provider and reduce overhead
         # Recommended for online sources to reduce server load
         # Recommended for low-resolution sources to smooth the landscape
-        type: InterpolatingElevationCache
+        #type: InterpolatingElevationCache
+        #parameters:
+        #  provider:
+        #    # Get elevation data from MapQuest's Open Elevation API
+        #    type: OpenElevationConnector
+        #    parameters: {}
+        #  scale:
+        #    # Spacing of the cache grid, in degrees
+        #    # locations between points will be linearly interpolated
+        #    lat: .004
+        #    lon: .004
+        #  #origin: #Optionally, also specify grid origin (not needed) as origin.lat/lon
+
+        ## A fully offline provider, for testing projections
+        ## Creates elevations within a rectangle increasing to the northeast.
+        ## The south of the box has uniform low elevation, and areas outside the box
+        ## have random elevation.
+        #type: TestElevationProvider
+        #parameters:
+        #  # coordinates of the well-defined box
+        #  south: 32.73
+        #  north: 32.80 #84 blocks
+        #  west: -117.26
+        #  east: -117.20 # 72 blocks
+        #  # elevation scale
+        #  min-elev: 0
+        #  max-elev: 64 
+
+        # Fetch SMRT elevation data
+        #type: InterpolatedCoverageElevationProvider
+        #parameters:
+        #  provider:
+        type: SRTMPlusElevationProvider
         parameters:
-          provider:
-            # Get elevation data from MapQuest's Open Elevation API
-            #type: OpenElevationConnector
-            #parameters: {}
-            
-            # A fully offline provider, for testing projections
-            # Creates elevations within a rectangle increasing to the northeast.
-            # The south of the box has uniform low elevation, and areas outside the box
-            # have random elevation.
-            type: TestElevationProvider
-            parameters:
-              # coordinates of the well-defined box
-              south: 32.73
-              north: 32.80 #84 blocks
-              west: -117.26
-              east: -117.20 # 72 blocks
-              # elevation scale
-              min-elev: 0
-              max-elev: 64 
-              
-            # Fetch SMRT elevation data
-            #type: SRTMPlusElevationProvider
-            #parameters:
-            #  cache-dir: /Users/blivens/dev/minecraft/srtm
-              
-          scale:
-            # Spacing of the cache grid, in degrees
-            # locations between points will be linearly interpolated
-            lat: .004
-            lon: .004
-          #Optionally, also specify grid origin (not needed) as origin.lat/lon
+          cache: /Users/blivens/dev/minecraft/srtm
+
     # tile the map over and over, or just truncate it at the dateline and show water?
     wrap: Yes
+    spawnOcean: No
+
+# vi: ts=2 sw=2 et
