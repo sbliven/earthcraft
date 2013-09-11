@@ -4,6 +4,8 @@
 package us.bliven.bukkit.earthcraft.gis;
 
 import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -101,6 +103,11 @@ class Lattice {
 		return coordinates;
 	}
 
+	/**
+	 * Get the closest point to the query coordinate
+	 * @param query
+	 * @return
+	 */
 	public Point getNearestNeighbor(Coordinate query) {
 		double scaledX = (query.x-origin.x)/scale.x;
 		double scaledY = (query.y-origin.y)/scale.y;
@@ -108,5 +115,38 @@ class Lattice {
 		int x = (int) Math.round(scaledX);
 		int y = (int) Math.round(scaledY);
 		return new Point(x,y);
+	}
+
+	/**
+	 * Get a point (x,y) such that query lies in the lattice square bounded by
+	 * [x,x+1) and [y,y+1).
+	 *
+	 * @param query
+	 * @return
+	 */
+	public Point getReferenceNeighbor(Coordinate query) {
+		double scaledX = (query.x-origin.x)/scale.x;
+		double scaledY = (query.y-origin.y)/scale.y;
+
+		int x = (int) Math.floor(scaledX);
+		int y = (int) Math.floor(scaledY);
+
+		return new Point(x,y);
+	}
+
+	/**
+	 * Gets the position of the query point within the reference square.
+	 * Both coordinates range [0,1)
+	 * @param query
+	 * @return
+	 */
+	public Point2D.Double getReferencePosition(Coordinate query) {
+		double scaledX = (query.x-origin.x)/scale.x;
+		double scaledY = (query.y-origin.y)/scale.y;
+
+		int x = (int) Math.floor(scaledX);
+		int y = (int) Math.floor(scaledY);
+
+		return new Point2D.Double(scaledX-x, scaledY-y);
 	}
 }
