@@ -89,6 +89,10 @@ public class EarthcraftPlugin extends JavaPlugin {
 
     	EarthGen gen = new EarthGen(projection,provider,spawn);
 
+    	boolean ocean = config.getSpawnOcean(worldName);
+    	log.info( (ocean?"S":"Not s") + "pawning oceans.");
+    	gen.setSpawnOcean(ocean);
+
     	Location spawnLoc = gen.getFixedSpawnLocation(null, null);
     	Coordinate spawn2 = projection.locationToCoordinate(spawnLoc);
     	log.info("Spawn is at block "+spawnLoc+" which would be "+spawn2);

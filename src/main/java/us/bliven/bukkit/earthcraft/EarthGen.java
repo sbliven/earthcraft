@@ -26,15 +26,16 @@ import com.vividsolutions.jts.geom.Coordinate;
 public class EarthGen extends ChunkGenerator {
 	Logger log;
 
-	private MapProjection projection;
-	private ElevationProvider elevation;
-	private Coordinate spawn;
+	private final MapProjection projection;
+	private final ElevationProvider elevation;
+	private final Coordinate spawn;
 
 	private final int defaultBlockHeight = 1;
 
 	private int seaLevel; // 1st block above water
 	private int sandLevel; // 1st block above the beach
 
+	private boolean spawnOcean;
 
 	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
@@ -49,8 +50,55 @@ public class EarthGen extends ChunkGenerator {
 		Location sand = projection.coordinateToLocation(null, new Coordinate(0,0,2));
 		this.sandLevel = sand.getBlockY();
 
-		log.info("Sea level at "+seaLevel);
-		log.info("Beach level at "+sandLevel);
+//		log.info("Sea level at "+seaLevel);
+//		log.info("Beach level at "+sandLevel);
+
+		this.spawnOcean = true;
+	}
+
+
+	public int getSeaLevel() {
+		return seaLevel;
+	}
+
+
+	public void setSeaLevel(int seaLevel) {
+		this.seaLevel = seaLevel;
+	}
+
+
+	public int getSandLevel() {
+		return sandLevel;
+	}
+
+
+	public void setSandLevel(int sandLevel) {
+		this.sandLevel = sandLevel;
+	}
+
+
+	public boolean isSpawnOcean() {
+		return spawnOcean;
+	}
+
+
+	public void setSpawnOcean(boolean spawnOcean) {
+		this.spawnOcean = spawnOcean;
+	}
+
+
+	public MapProjection getProjection() {
+		return projection;
+	}
+
+
+	public ElevationProvider getElevation() {
+		return elevation;
+	}
+
+
+	public int getDefaultBlockHeight() {
+		return defaultBlockHeight;
 	}
 
 
@@ -115,7 +163,7 @@ public class EarthGen extends ChunkGenerator {
 						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
 					}
 				}
-				for(;y<seaLevel;y++) {
+				for(;y<seaLevel && spawnOcean ;y++) {
 					result[xyzToByte(x,y,z)] = (byte) Material.STATIONARY_WATER.getId();
 				}
 			}

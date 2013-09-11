@@ -195,8 +195,12 @@ public class ConfigManager {
 	}
 
 	public boolean getWrap(String worldName) {
-		// TODO use this value for creating elevation providers
 		ConfigurationSection world = getWorld(worldName);
 		return world.getBoolean("wrap", true);
+	}
+
+	public boolean getSpawnOcean(String worldName) {
+		ConfigurationSection world = getWorld(worldName);
+		return world.getBoolean("spawnOcean", true);
 	}
 }
