@@ -323,4 +323,32 @@ public class SRTMPlusElevationProviderTest {
 		elev = interp.fetchElevation(pos);
 		assertEquals(-46,elev,1e-6);
 	}
+
+	/**
+	 * Test interpolation around tile boundaries
+	 *
+	 * This tends to fail or produce artifacts.
+	 * @throws Exception
+	 */
+	@Test
+	public void testTileBoundaries() throws Exception {
+		double elev;
+		Coordinate pos;
+
+		ElevationProvider interp = new InterpolatedCoverageElevationProvider(srtm);
+
+		pos = new Coordinate(60,-180);
+		elev = interp.fetchElevation(pos);
+		assertEquals(-2638.,elev,1e-6);
+
+		pos = new Coordinate(60,180);
+		elev = interp.fetchElevation(pos);
+		assertEquals(-2638.,elev,1e-6);
+
+		pos = new Coordinate(63.370000000000005,-180.0);
+		elev = interp.fetchElevation(pos);
+		assertEquals(-65.,elev,1e-6);
+
+		//System.out.println(elev);
+	}
 }
