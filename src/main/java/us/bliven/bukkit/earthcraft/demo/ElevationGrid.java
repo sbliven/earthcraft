@@ -54,7 +54,8 @@ public class ElevationGrid {
 		if(! (new File(dir)).exists()) {
 			dir = System.getProperty("java.io.tmpdir") + "SRTMPlus";
 		}
-		//elevationProvider = new SRTMPlusElevationProvider(dir);
+
+		//elevationCache = new SRTMPlusElevationProvider(dir);
 
 		elevationCache = new InterpolatedCoverageElevationProvider(new SRTMPlusElevationProvider(dir));
 		//new InterpolatingElevationCache(elevationProvider, new Coordinate(latRes,lonRes));
@@ -82,7 +83,7 @@ public class ElevationGrid {
 		//System.out.println("Made "+oec.getRequestsMade()+" API calls.");
 	}
 
-	private static void displayImage(final BufferedImage image) {
+	private static JFrame displayImage(final BufferedImage image) {
 		JFrame frame = new JFrame("image");
 		JPanel main = new JPanel() {
 			private static final long serialVersionUID = 3493399647386782094L;
@@ -96,9 +97,10 @@ public class ElevationGrid {
 		main.add(new JLabel(new ImageIcon(image)));
 		main.setPreferredSize(new Dimension(image.getWidth()*4,image.getHeight()*4));
 		frame.getContentPane().add(main);
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE );
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE );
 		frame.pack();
 		frame.setVisible(true);
+		return frame;
 	}
 
 	/**
@@ -122,18 +124,30 @@ public class ElevationGrid {
 				//int i =3*x*height+3*y;
 				int i = 3*((height-y-1)*width+x);
 				// Nulls are black
-				if(elevations[y][x] == null || elevations[y][x]<0) {
+				if(elevations[y][x] == null || Double.isNaN(elevations[y][x])) {
 					pixels[i] = pixels[i+1] = pixels[i+2] = 0;
 
 				}
 				else {
 					//pixels[i] = pixels[i+1] = pixels[i+2] = elevations[x][y].intValue();
 
-					// Below 1 is blue
-					if(elevations[y][x] < 1) {
+					// Below 0 is blue
+					if(elevations[y][x] < -50) {
 						pixels[i] = 0;
 						pixels[i+1] = 0;
-						pixels[i+2] = 255;
+						pixels[i+2] = 0x33;
+					} else if( elevations[y][x] < 0) {
+						// Interpolate between blue (0x0000ff)
+						// and dark blue 0x000033 at -50
+						double a = -elevations[y][x]/50.;
+						pixels[i] = 0;
+						pixels[i+1] = 0;
+						pixels[i+2] = (int) (a*0xff + (1-a)*0x33);
+					} else if( elevations[y][x] <1 ) {
+						// Sandy beach
+						pixels[i] = 220;
+						pixels[i+1] = 220;
+						pixels[i+2] = 16;
 					} else {
 						// Interpolate between green (0x00ff00)
 						// and brown 0x804000
