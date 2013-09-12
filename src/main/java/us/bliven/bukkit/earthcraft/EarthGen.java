@@ -1,6 +1,6 @@
 package us.bliven.bukkit.earthcraft;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
@@ -37,6 +37,8 @@ public class EarthGen extends ChunkGenerator {
 
 	private boolean spawnOcean;
 
+	protected List<BlockPopulator> populators;
+
 	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
 		this.projection = projection;
@@ -52,6 +54,8 @@ public class EarthGen extends ChunkGenerator {
 
 //		log.info("Sea level at "+seaLevel);
 //		log.info("Beach level at "+sandLevel);
+
+		this.populators = new ArrayList<BlockPopulator>();
 
 		this.spawnOcean = true;
 	}
@@ -104,8 +108,9 @@ public class EarthGen extends ChunkGenerator {
 
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world) {
-		return Arrays.asList();//super.getDefaultPopulators(world);
-		//Arrays.asList((BlockPopulator) new BlankPopulator());
+		List<BlockPopulator> pops = new ArrayList<BlockPopulator>(populators);
+		pops.addAll(super.getDefaultPopulators(world));
+		return pops;
 	}
 
 	/**
