@@ -10,12 +10,12 @@ import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
-import uk.co.jacekk.bukkit.skylandsplus.generation.SnowPopulator;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
@@ -133,59 +133,80 @@ public class EarthGen extends ChunkGenerator {
 	}
 
 	/**
-	 * This converts relative chunk locations to bytes that can be written to the chunk
+	 * helper function for generate
 	 */
-	protected int xyzToByte(int x, int y, int z) {
-		return (x * 16 + z) * 256 + y;
+	private void setBlock(byte[][] result, int x, int y, int z, byte blkid) {
+	    if (result[y >> 4] == null) {
+	        result[y >> 4] = new byte[4096];
+	    }
+	    result[y >> 4][((y & 0xF) << 8) | (z << 4) | x] = blkid;
 	}
 
-
 	@Override
-	public byte[] generate(World world, Random rand, int chunkx, int chunkz) {
-		int chunkHeight = world.getMaxHeight();
-		byte[] result = new byte[16*16*chunkHeight];
+	@Deprecated
+	public byte[][] generateBlockSections(World world, Random random, int chunkx,
+			int chunkz, BiomeGrid biomes) {
+		byte[][] result = new byte[16][];
 
 
 		for(int x=0; x<16; x++){
 			for(int z=0; z<16; z++) {
 				int y = 0;
 				//This will set the floor of each chunk at bedrock level to bedrock
-				result[xyzToByte(x,y,z)] = (byte) Material.BEDROCK.getId();
+				setBlock(result,x,y,z, (byte) Material.BEDROCK.getId() );
 				y++;
 
 				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
 
+				setBiome(x,height,z,biomes);
 				int stoneHeight = height - 16;
 
 				for(;y<stoneHeight; y++) {
-					result[xyzToByte(x,y,z)] = (byte) Material.STONE.getId();
+					setBlock(result,x,y,z, (byte) Material.STONE.getId() );
 				}
 
 				if( height > this.sandLevel ) {
+					// Land
 					for(;y< height-1;y++) {
-						result[xyzToByte(x,y,z)] = (byte) Material.DIRT.getId();
+						setBlock(result,x,y,z, (byte) Material.DIRT.getId() );
 					}
 					if(y<height) {
-						result[xyzToByte(x,y,z)] = (byte) Material.GRASS.getId();
+						setBlock(result,x,y,z, (byte) Material.GRASS.getId() );
 						y++;
 					}
 
 				} else {
+					// Ocean or beach
 					if( y < height-1 ) {
-						result[xyzToByte(x,y,z)] = (byte) Material.SANDSTONE.getId();
+						setBlock(result,x,y,z, (byte) Material.SANDSTONE.getId());
 						y++;
 					}
 					for(;y< height;y++) {
-						result[xyzToByte(x,y,z)] = (byte) Material.SAND.getId();
+						setBlock(result,x,y,z, (byte) Material.SAND.getId() );
 					}
 				}
 				for(;y<seaLevel && spawnOcean ;y++) {
-					result[xyzToByte(x,y,z)] = (byte) Material.STATIONARY_WATER.getId();
+					setBlock(result,x,y,z, (byte) Material.STATIONARY_WATER.getId() );
 				}
 			}
 		}
 		return result;
 	}
+
+	private void setBiome(int x, int height, int z, BiomeGrid biomes) {
+		int mountainLevel = (seaLevel+256)/2;
+		if(height < seaLevel) {
+			biomes.setBiome(x, z, Biome.OCEAN);
+		} else if( height <= sandLevel) {
+			biomes.setBiome(x, z, Biome.BEACH);
+		} else if( height <= mountainLevel) {
+			biomes.setBiome(x, z, Biome.FOREST_HILLS);
+		} else {
+			biomes.setBiome(x, z, Biome.ICE_MOUNTAINS);
+		}
+
+	}
+
 
 	/**
 	 * Calculate the elevation for a position
