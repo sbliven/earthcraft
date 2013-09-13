@@ -1,6 +1,7 @@
 package us.bliven.bukkit.earthcraft;
 
-import java.util.ArrayList;
+import io.github.lucariatias.bukkitpopulators.BukkitPopulators;
+
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
@@ -11,7 +12,10 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 
+import uk.co.jacekk.bukkit.skylandsplus.generation.SnowPopulator;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
@@ -37,14 +41,16 @@ public class EarthGen extends ChunkGenerator {
 
 	private boolean spawnOcean;
 
-	protected List<BlockPopulator> populators;
+	private Plugin plugin;
 
-	public EarthGen( MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
+	public EarthGen(Plugin plugin, MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
 		super();
+		this.plugin = plugin;
 		this.projection = projection;
 		this.elevation = elevation;
 		this.spawn = spawn;
-		this.log = Logger.getLogger(EarthGen.class.getName());
+		this.log = plugin.getLogger();
+		if(this.log == null) this.log = Logger.getLogger(EarthGen.class.getName());
 
 		Location origin = projection.coordinateToLocation(null, new Coordinate(0,0,0));
 		this.seaLevel = origin.getBlockY();
@@ -54,8 +60,6 @@ public class EarthGen extends ChunkGenerator {
 
 //		log.info("Sea level at "+seaLevel);
 //		log.info("Beach level at "+sandLevel);
-
-		this.populators = new ArrayList<BlockPopulator>();
 
 		this.spawnOcean = true;
 	}
@@ -108,9 +112,16 @@ public class EarthGen extends ChunkGenerator {
 
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world) {
-		List<BlockPopulator> pops = new ArrayList<BlockPopulator>(populators);
-		pops.addAll(super.getDefaultPopulators(world));
-		return pops;
+		PluginManager pm = plugin.getServer().getPluginManager();
+		BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
+		if(bukkitpopulators != null) {
+			List<BlockPopulator> pops =  bukkitpopulators.getDefaultPopulators(world);
+			log.info("Read "+pops.size()+" populators from BukkitPopulators");
+			return pops;
+		}
+		log.info("No populators.");
+
+		return super.getDefaultPopulators(world);
 	}
 
 	/**
@@ -262,5 +273,7 @@ public class EarthGen extends ChunkGenerator {
 	public Coordinate getSpawn() {
 		return spawn;
 	}
+
+
 
 }

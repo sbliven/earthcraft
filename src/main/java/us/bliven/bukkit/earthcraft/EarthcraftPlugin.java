@@ -87,7 +87,7 @@ public class EarthcraftPlugin extends JavaPlugin {
 			provider = new FlatElevationProvider();
 		}
 
-    	EarthGen gen = new EarthGen(projection,provider,spawn);
+    	EarthGen gen = new EarthGen(this,projection,provider,spawn);
 
     	boolean ocean = config.getSpawnOcean(worldName);
     	log.info( (ocean?"S":"Not s") + "pawning oceans.");

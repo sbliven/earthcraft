@@ -1,9 +1,11 @@
-name: Earthcraft
+name: "${project.name}"
+author: "Spencer Bliven"
+version: "${project.version}"
 main: us.bliven.bukkit.earthcraft.EarthcraftPlugin
-version: 0.1
+website: "${project.url}"
 load: STARTUP
-author: Spencer Bliven
-description: A world generator using real-world terrain data
+description: "A world generator using real-world terrain data"
+softdepends: [BukkitPopulators,SkylandsPlus]
 commands:
   earth:
     description: General Earthcraft command
