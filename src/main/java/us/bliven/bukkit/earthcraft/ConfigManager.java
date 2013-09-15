@@ -5,12 +5,14 @@ import java.util.logging.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.EquirectangularProjection;
 import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.GridCoverageElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.InterpolatedCoverageElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.InterpolatingElevationCache;
+import us.bliven.bukkit.earthcraft.gis.LinearElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.OpenElevationConnector;
 import us.bliven.bukkit.earthcraft.gis.SRTMPlusElevationProvider;
@@ -41,7 +43,7 @@ public class ConfigManager {
 		return config.getConfigurationSection("worlds."+worldname);
 	}
 
-	public MapProjection getProjection(String worldName) {
+	public MapProjection getMapProjection(String worldName) {
 		ConfigurationSection world = getWorld(worldName);
 		ConfigurationSection projection = world.getConfigurationSection("projection");
 		String type = projection.getString("type");
@@ -54,6 +56,11 @@ public class ConfigManager {
 			log.severe("Unrecognized projection type "+type);
 			return createEquirectangularProjection(parameters);
 		}
+	}
+
+	public ElevationProjection getElevationProjection(String worldName) {
+		//TODO stub
+		return new LinearElevationProjection(-640., 10.);
 	}
 
 	private EquirectangularProjection createEquirectangularProjection(

@@ -15,8 +15,10 @@ import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.util.NumberConversions;
 
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
+import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
@@ -30,8 +32,9 @@ import com.vividsolutions.jts.geom.Coordinate;
 public class EarthGen extends ChunkGenerator {
 	Logger log;
 
-	private final MapProjection projection;
-	private final ElevationProvider elevation;
+	private final MapProjection mapProjection;
+	private final ElevationProjection elevationProjection;
+	private final ElevationProvider elevationProvider;
 	private final Coordinate spawn;
 
 	private final int defaultBlockHeight = 1;
@@ -43,19 +46,22 @@ public class EarthGen extends ChunkGenerator {
 
 	private Plugin plugin;
 
-	public EarthGen(Plugin plugin, MapProjection projection, ElevationProvider elevation, Coordinate spawn) {
+	public EarthGen(Plugin plugin, MapProjection mapProjection,
+			ElevationProjection elevProjection, ElevationProvider elevation,
+			Coordinate spawn) {
 		super();
 		this.plugin = plugin;
-		this.projection = projection;
-		this.elevation = elevation;
+		this.mapProjection = mapProjection;
+		this.elevationProjection = elevProjection;
+		this.elevationProvider = elevation;
 		this.spawn = spawn;
 		this.log = plugin.getLogger();
 		if(this.log == null) this.log = Logger.getLogger(EarthGen.class.getName());
 
-		Location origin = projection.coordinateToLocation(null, new Coordinate(0,0,0));
+		Location origin = mapProjection.coordinateToLocation(null, new Coordinate(0,0,0));
 		this.seaLevel = origin.getBlockY();
 
-		Location sand = projection.coordinateToLocation(null, new Coordinate(0,0,2));
+		Location sand = mapProjection.coordinateToLocation(null, new Coordinate(0,0,2));
 		this.sandLevel = sand.getBlockY();
 
 //		log.info("Sea level at "+seaLevel);
@@ -92,16 +98,6 @@ public class EarthGen extends ChunkGenerator {
 
 	public void setSpawnOcean(boolean spawnOcean) {
 		this.spawnOcean = spawnOcean;
-	}
-
-
-	public MapProjection getProjection() {
-		return projection;
-	}
-
-
-	public ElevationProvider getElevation() {
-		return elevation;
 	}
 
 
@@ -216,78 +212,68 @@ public class EarthGen extends ChunkGenerator {
 	 * @return
 	 */
 	public int getBlockHeight(World world, int worldx, int worldz) {
-		int height = 1;
 		Location root = new Location(world,worldx,0,worldz);
 		// Translate x/z to lat/lon
-		Coordinate coord = projection.locationToCoordinate(root);
+		Coordinate coord = mapProjection.locationToCoordinate(root);
+		Double elev;
 		try {
 			// get elevation in m
-			Double h = elevation.fetchElevation(coord);
-
-			if(h != null) {
-				coord.z = h;
-			} else {
-				coord.z = Double.NaN;
-			}
-
+			elev  = elevationProvider.fetchElevation(coord);
 		} catch (DataUnavailableException e) {
 			// Severe but expected exception
 			log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
-			coord.z = Double.NaN;
+			elev = Double.NaN;
 		} catch (Exception e) {
 			// Unexpected exception; indicates a bug
 			log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
 					worldx + "," + worldz +
 					" (" + ProjectionTools.latlonString(coord) + ")", e);
-			coord.z = Double.NaN;
+			elev = Double.NaN;
 		}
+
 		// translate elevation to blocks
-		root = projection.coordinateToLocation(world, coord);
+		double y = elevationProjection.elevationToY(elev);
 
-		if(root.getY() == Double.NaN ) {
-			height = defaultBlockHeight;
+		root = mapProjection.coordinateToLocation(world, coord);
+
+		if( y == Double.NaN ) {
+			return defaultBlockHeight;
 		} else {
-			height = root.getBlockY();
+			return NumberConversions.floor(Math.min(y, world.getMaxHeight()));
 		}
-
-		if(height>world.getMaxHeight()) {
-			height = world.getMaxHeight();
-		}
-
-		if(worldx == -170000 && worldz == -60000) {
-			log.info(String.format("Height at %d,%d (%s) = %f -> %d (Maybe %d?)",
-					worldx,worldz, ProjectionTools.latlonString(coord),
-					root.getY(), height, root.getBlockY()) );
-		}
-
-
-		return height;
 	}
 
 
 	@Override
 	public Location getFixedSpawnLocation(World world, Random random) {
+		// Project latlon
+		Location spawnloc = mapProjection.coordinateToLocation(world, new Coordinate(spawn.x,spawn.y));
+
+		// Project elevation
 		Double elev;
 		try {
-			elev = elevation.fetchElevation(spawn);
+			elev = elevationProvider.fetchElevation(spawn);
 		} catch (DataUnavailableException e) {
 			elev = Double.NaN;
 		}
-		Location spawnloc = projection.coordinateToLocation(world, new Coordinate(spawn.x,spawn.y,elev));
-		if(Double.isNaN(spawnloc.getY())) {
-			spawnloc.setY( defaultBlockHeight );
-		}
+		double y = elevationProjection.elevationToY(elev);
+
+		spawnloc.setY(y);
 
 		return spawnloc;
 	}
 
 	public MapProjection getMapProjection() {
-		return projection;
+		return mapProjection;
 	}
 
 
 	public ElevationProvider getElevationProvider() {
-		return elevation;
+		return elevationProvider;
+	}
+
+	public ElevationProjection getElevationProjection() {
+		return elevationProjection;
 	}
 
 

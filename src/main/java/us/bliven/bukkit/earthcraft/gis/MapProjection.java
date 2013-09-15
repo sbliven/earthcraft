@@ -6,7 +6,9 @@ import org.bukkit.World;
 import com.vividsolutions.jts.geom.Coordinate;
 
 /**
- * Converts minecraft x/y/z coordinates into real-world lat/lon/elevation coordinates
+ * Converts minecraft x/z coordinates into real-world lat/lon coordinates.
+ *
+ * For converting elevation, implement {@link ElevationProjection}
  *
  * @author Spencer Bliven
  */

@@ -21,6 +21,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
+import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
@@ -73,7 +74,8 @@ public class EarthcraftPlugin extends JavaPlugin {
     	// Set up elevation provider
 
     	// Load info from config file
-    	MapProjection projection = config.getProjection(worldName);
+    	MapProjection mapProj = config.getMapProjection(worldName);
+    	ElevationProjection elevProj = config.getElevationProjection(worldName);
     	ElevationProvider provider = config.getProvider(worldName);
     	Coordinate spawn = config.getSpawn(worldName);
 
@@ -87,14 +89,14 @@ public class EarthcraftPlugin extends JavaPlugin {
 			provider = new FlatElevationProvider();
 		}
 
-    	EarthGen gen = new EarthGen(this,projection,provider,spawn);
+    	EarthGen gen = new EarthGen(this,mapProj,elevProj,provider,spawn);
 
     	boolean ocean = config.getSpawnOcean(worldName);
     	log.info( (ocean?"S":"Not s") + "pawning oceans.");
     	gen.setSpawnOcean(ocean);
 
     	Location spawnLoc = gen.getFixedSpawnLocation(null, null);
-    	Coordinate spawn2 = projection.locationToCoordinate(spawnLoc);
+    	Coordinate spawn2 = mapProj.locationToCoordinate(spawnLoc);
     	log.info("Spawn is at block "+spawnLoc+" which would be "+spawn2);
 
     	generators.put(worldName,gen);

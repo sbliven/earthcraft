@@ -7,7 +7,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * Implements an Equirectangular projection. This is a linear scaling of the
- * earth, with the poles simple cut off.
+ * earth.
  *
  * <p>It preserves neither distance, area, nor angle, but is easy to compute.
  *
@@ -46,14 +46,8 @@ public class EquirectangularProjection implements MapProjection {
 		if( origin == null) {
 			throw new IllegalArgumentException("Origin must not be null.");
 		}
-		if( origin.z == Double.NaN ) {
-			throw new IllegalArgumentException("No Z origin specified");
-		}
 		if( scale == null) {
 			throw new IllegalArgumentException("Scale must not be null.");
-		}
-		if( scale.z == Double.NaN ) {
-			throw new IllegalArgumentException("No Z scale specified");
 		}
 		this.origin = origin;
 		this.scale = scale;
@@ -65,13 +59,12 @@ public class EquirectangularProjection implements MapProjection {
 		// In GeoTools, x denotes latitude northward, y denotes longitude eastward, and z gives altitude.
 		double locX = (coord.y-origin.y)/scale.y; // East-ness
 		double locZ = -(coord.x-origin.x)/scale.x; // South-ness
-		double locY = (coord.z-origin.z)/scale.z; // Up-ness
 
 		// Truncate to bounds
 		//if(y<0) y=0;
 		//if(y>world.getMaxHeight()) y = world.getMaxHeight();
 
-		Location loc = new Location(world, locX, locY, locZ);
+		Location loc = new Location(world, locX, Double.NaN, locZ);
 		return loc;
 	}
 
@@ -81,14 +74,12 @@ public class EquirectangularProjection implements MapProjection {
 		// In GeoTools, x denotes latitude northward, y denotes longitude eastward, and z gives altitude.
 		//TODO Locations are generally relative to chunks. Decide how to handle that
 		double locX = loc.getX(); // Eastness
-		double locY = loc.getY(); // Upness
 		double locZ = loc.getZ(); // Southness
 
 		double coordX = -scale.x*locZ+origin.x; //lat
 		double coordY = scale.y*locX+origin.y; //lon
-		double coordZ = scale.z*locY+origin.z; //elev
 
-		Coordinate coord = new Coordinate(coordX,coordY,coordZ);
+		Coordinate coord = new Coordinate(coordX,coordY);
 		return coord;
 	}
 
