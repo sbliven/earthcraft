@@ -1,7 +1,13 @@
 package us.bliven.bukkit.earthcraft.gis;
 
+import java.util.logging.Logger;
+
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+
+import us.bliven.bukkit.earthcraft.ConfigManager;
+import us.bliven.bukkit.earthcraft.Configurable;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -17,10 +23,12 @@ import com.vividsolutions.jts.geom.Coordinate;
  *
  * @author Spencer Bliven
  */
-public class EquirectangularProjection implements MapProjection {
+public class EquirectangularProjection implements MapProjection, Configurable {
 
 	private Coordinate origin;
 	private Coordinate scale;
+
+	Logger log;
 
 	/**
 	 * Origin and scale are relative to the real world.
@@ -51,6 +59,29 @@ public class EquirectangularProjection implements MapProjection {
 		}
 		this.origin = origin;
 		this.scale = scale;
+
+		log = Logger.getLogger(getClass().getName());
+	}
+
+	public EquirectangularProjection() {
+		this(new Coordinate(0,0), new Coordinate(1,1));
+	}
+	public EquirectangularProjection(ConfigManager config, ConfigurationSection params) {
+		this();
+		initFromConfig(config, params);
+	}
+
+	@Override
+	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+		for(String param : params.getKeys(false)) {
+			if( param.equalsIgnoreCase("scale") ) {
+				scale = config.getCoordinate(params,param,scale);
+			} else if( param.equalsIgnoreCase("origin") ) {
+				origin = config.getCoordinate(params, param,origin);
+			} else {
+				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+			}
+		}
 	}
 
 	@Override

@@ -1,22 +1,18 @@
 package us.bliven.bukkit.earthcraft;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.plugin.Plugin;
 
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
-import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.EquirectangularProjection;
-import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.GridCoverageElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.InterpolatedCoverageElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.InterpolatingElevationCache;
-import us.bliven.bukkit.earthcraft.gis.LinearElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
-import us.bliven.bukkit.earthcraft.gis.OpenElevationConnector;
-import us.bliven.bukkit.earthcraft.gis.SRTMPlusElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.TestElevationProvider;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -33,16 +29,26 @@ public class ConfigManager {
 	public ConfigManager(EarthcraftPlugin plugin) {
 		this.plugin=plugin;
 
-		log = Logger.getLogger(ConfigManager.class.getName());
+		log = Logger.getLogger(getClass().getName());
 
 		//TODO defaults
 	}
 
-	public ConfigurationSection getWorld(String worldname) {
-		FileConfiguration config = plugin.getConfig();
-		return config.getConfigurationSection("worlds."+worldname);
+	public Plugin getPlugin() {
+		return plugin;
 	}
 
+	protected ConfigurationSection getWorld(String worldname) {
+		FileConfiguration config = plugin.getConfig();
+		ConfigurationSection params = config.getConfigurationSection("worlds."+worldname);
+		if( params == null ) {
+			params = new MemoryConfiguration();
+			plugin.getConfig().set("worlds."+worldname, params);
+		}
+		return params;
+	}
+
+	/*
 	public MapProjection getMapProjection(String worldName) {
 		ConfigurationSection world = getWorld(worldName);
 		ConfigurationSection projection = world.getConfigurationSection("projection");
@@ -209,5 +215,152 @@ public class ConfigManager {
 	public boolean getSpawnOcean(String worldName) {
 		ConfigurationSection world = getWorld(worldName);
 		return world.getBoolean("spawnOcean", true);
+	}
+	*/
+
+	/**
+	 * Create a new EarthGen instance for a particular world from the config
+	 * @param world world name
+	 * @return
+	 */
+	public EarthGen createEarthGen(String world) {
+		ConfigurationSection params = getWorld(world);
+		EarthGen gen = new EarthGen(plugin);
+		gen.initFromConfig(this, params);
+		return gen;
+	}
+
+	/**
+	 * Create a coordinate from a specific configuration section
+	 * @param params The ConfigurationSection
+	 * @param paramName A key containing a list of doubles
+	 * @param defaults A default Coordinate to return on parsing failures
+	 * @return
+	 */
+	public Coordinate getCoordinate(ConfigurationSection params, String paramName,
+			Coordinate defaults) {
+		return getCoordinate(params.getDoubleList(paramName),defaults);
+	}
+	/**
+	 * Create a coordinate from a list of doubles
+	 * @param coords lat, lon, [elev]
+	 * @param defaults Returned if coords contains other than 2-3 elements
+	 * @return
+	 */
+	public Coordinate getCoordinate(List<Double> coords,Coordinate defaults) {
+		if( coords.size() == 2) {
+			return new Coordinate(coords.get(0),coords.get(1));
+		} else if( coords.size() == 3) {
+			return new Coordinate(coords.get(0),coords.get(1),coords.get(2));
+		} else {
+			return defaults;
+		}
+	}
+
+
+	/**
+	 * Instantiate a Configurable object from a section of a config file
+	 *
+	 * @param className The name of a class implementing Configurable and
+	 * 	extending <code>supertype</code>
+	 * @param supertype The type of the object to be returned
+	 * @param params Initialization parameters, passed to the new object's
+	 *  {@link Configurable#initFromConfig(ConfigManager, ConfigurationSection)
+	 *  initFromConfig()} method
+	 * @param def Default return value. Returned if any errors occur.
+	 * @return A new object of type <code>className</code> and initialized
+	 *  with the parameters in <code>params</code>, or <code>def</code> if
+	 *  an error has occurred.
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T createConfigurable(String className, Class<T> supertype,
+			ConfigurationSection params, T def ) {
+
+		// Load the class
+		ClassLoader cl = plugin.getClass().getClassLoader();
+
+		String[] packages = new String[] {
+				"",
+				ElevationProjection.class.getPackage().getName()+".",
+				getClass().getPackage().getName()+".",
+		};
+
+		Class<?> klass = null;
+		for(String pkg : packages) {
+			try {
+				klass = cl.loadClass(pkg+className);
+				//log.info("Found "+pkg+className);
+				break;
+			} catch (ClassNotFoundException e) {
+				//not in this package
+				//log.info("Unable to find "+pkg+className);
+			}
+		}
+		if( klass == null) {
+			log.severe("Unable to find "+className);
+			return def;
+		}
+
+		if( !Configurable.class.isAssignableFrom(klass)) {
+			log.severe(className+" is not Configurable.");
+			return def;
+		}
+
+		// instantiate
+		T t;
+		try {
+			t = (T)klass.newInstance();
+		} catch (ClassCastException e) {
+			// Must be a Configurable T
+			log.severe(className+" is not a "+supertype.getName()+".");
+			return def;
+		} catch (InstantiationException e) {
+			log.log(Level.SEVERE,"Error instantiating "+className,e);
+			return def;
+		} catch (IllegalAccessException e) {
+			log.log(Level.SEVERE,"Error instantiating "+className,e);
+			return def;
+		}
+
+		// initialize
+		((Configurable) t).initFromConfig(this, params);
+
+		return t;
+	}
+
+	/**
+	 * Helper function for creating Configurables for sections which should
+	 * contain only a single key of the form:
+	 *
+	 * <pre>classname: {parameters...}</pre>
+	 *
+	 * If more than one key is present, all but one will be ignored. Generally
+	 * the last key is used, although the order is not guaranteed by the API.
+	 * @param supertype The type of the object to be returned
+	 * @param section The section containing the single key
+	 * @param def
+	 * @return
+	 */
+	public <T> T createSingleConfigurable(Class<T> supertype,
+			ConfigurationSection section, T def) {
+		// Should contain only a single element
+		// If more are present, use the last one
+		Set<String> keys = section.getKeys(false);
+
+		if( keys.size() < 1) {
+			return def;
+		}
+
+		Iterator<String> keysIt = keys.iterator();
+		String className = keysIt.next();
+		while(keysIt.hasNext()) {
+			log.warning(String.format("Ignoring section %s.%s",
+					section.getCurrentPath(), className) );
+			className = keysIt.next();
+		}
+
+		ConfigurationSection params = section.getConfigurationSection(className);
+
+		return createConfigurable(className, supertype, params, def);
 	}
 }

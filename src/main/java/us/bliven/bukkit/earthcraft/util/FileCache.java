@@ -56,7 +56,8 @@ public class FileCache {
 		// Create base directory if it doesn't exist
 		File dirFile = new File(dir);
 		if(!dirFile.exists()) {
-			dirFile.mkdir();
+			log.info("Creating "+dirFile.getAbsolutePath());
+			dirFile.mkdirs();
 		}
 
 		this.executor = executor;

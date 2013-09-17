@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,15 +20,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.PluginClassLoader;
 
-import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
-import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
-import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
-import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
 import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
+import com.sun.media.jai.operator.ImageReadDescriptor;
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class EarthcraftPlugin extends JavaPlugin {
@@ -42,10 +41,11 @@ public class EarthcraftPlugin extends JavaPlugin {
 
     @Override
 	public void onEnable(){
-
-        //log = this.getLogger();
-        log = this.getLogger();//Logger.getLogger(EarthcraftPlugin.class.getName());
-        log.setLevel(Level.ALL);
+        log = this.getLogger();
+        if(log == null) {
+			System.setProperty("java.util.logging.SimpleFormatter.format","%4$s: %5$s%6$s%n");
+        	log = Logger.getLogger(getClass().getName());
+        }
 
         log.info("Earthcraft enabled.");
         log.info("CLASSPATH="+System.getProperty("java.class.path"));
@@ -56,7 +56,6 @@ public class EarthcraftPlugin extends JavaPlugin {
         saveDefaultConfig();
 
         config = new ConfigManager(this);
-
     }
 
 
@@ -71,33 +70,8 @@ public class EarthcraftPlugin extends JavaPlugin {
     		return generators.get(worldName);
     	}
 
-    	// Set up elevation provider
-
     	// Load info from config file
-    	MapProjection mapProj = config.getMapProjection(worldName);
-    	ElevationProjection elevProj = config.getElevationProjection(worldName);
-    	ElevationProvider provider = config.getProvider(worldName);
-    	Coordinate spawn = config.getSpawn(worldName);
-
-    	log.info("Setting spawn to "+spawn.x+","+spawn.y);
-
-    	// Check that the ElevationProvider is working
-    	try {
-			provider.fetchElevation(spawn);
-		} catch (DataUnavailableException e) {
-			log.log(Level.SEVERE, "Unable to load elevation provider!",e);
-			provider = new FlatElevationProvider();
-		}
-
-    	EarthGen gen = new EarthGen(this,mapProj,elevProj,provider,spawn);
-
-    	boolean ocean = config.getSpawnOcean(worldName);
-    	log.info( (ocean?"S":"Not s") + "pawning oceans.");
-    	gen.setSpawnOcean(ocean);
-
-    	Location spawnLoc = gen.getFixedSpawnLocation(null, null);
-    	Coordinate spawn2 = mapProj.locationToCoordinate(spawnLoc);
-    	log.info("Spawn is at block "+spawnLoc+" which would be "+spawn2);
+    	EarthGen gen = config.createEarthGen(worldName);
 
     	generators.put(worldName,gen);
     	log.info("Creating new Earthcraft Generator for "+worldName);
@@ -121,7 +95,11 @@ public class EarthcraftPlugin extends JavaPlugin {
     		//initJAIFromFile("/META-INF/services/javax.media.jai.OperationRegistrySpi", registry);
     		//initJAIFromFile("/META-INF/registryFile.jai", registry);
 
-    		new ImageReadWriteSpi().updateRegistry(registry);
+    		try {
+    			new ImageReadWriteSpi().updateRegistry(registry);
+    		} catch(IllegalArgumentException e) {
+    			// Probably indicates it was already registered.
+    		}
     	}
     }
 
@@ -318,4 +296,9 @@ public class EarthcraftPlugin extends JavaPlugin {
     	EarthcraftPlugin plugin = new EarthcraftPlugin();
     	plugin.getDefaultWorldGenerator("foo", "id");
     }
+
+
+	public ConfigManager getConfigManager() {
+		return config;
+	}
 }

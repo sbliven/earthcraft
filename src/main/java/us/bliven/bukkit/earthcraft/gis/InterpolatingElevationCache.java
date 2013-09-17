@@ -5,8 +5,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.apache.commons.collections15.map.LRUMap;
+import org.bukkit.configuration.ConfigurationSection;
+
+import us.bliven.bukkit.earthcraft.ConfigManager;
+import us.bliven.bukkit.earthcraft.Configurable;
 
 import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -14,13 +19,13 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * A cache layer for an elevation provider.
- * 
+ *
  * <p>Reduces calls to the underlying provider by
  *  1. Only fetching points from a widely-spaced lattice, then interpolating between them
  *  2. Pre-fetching nearby grid points
  * @author Spencer Bliven
  */
-public class InterpolatingElevationCache implements ElevationProvider {
+public class InterpolatingElevationCache implements ElevationProvider, Configurable {
 	private static final int MAX_ELEVATIONS_PER_SUBREQUEST = 36;
 	private static final int MAX_CACHE_SIZE = 1024;
 	private static final int MAX_PREFETCH_SIZE = 512;
@@ -30,16 +35,40 @@ public class InterpolatingElevationCache implements ElevationProvider {
 	private LRUMap<Point,Object> prefetchStack;// Actually a LRUSet
 	private Lattice lattice;
 	private LRUMap<Point,Double> cache;
-	
+
+	private Logger log;
+
 	public InterpolatingElevationCache(ElevationProvider provider, Coordinate origin, Coordinate gridScale) {
 		lattice = new Lattice(origin, gridScale);
 		this.provider = provider;
 		prefetchStack = new LRUMap<Point,Object>();
 		cache = new LRUMap<Point,Double>(MAX_CACHE_SIZE);
 		prefetchStack = new LRUMap<Point, Object>(MAX_PREFETCH_SIZE);
+
+		log = Logger.getLogger(getClass().getName());
 	}
 	public InterpolatingElevationCache(ElevationProvider provider, Coordinate gridScale) {
 		this(provider, new Coordinate(0.,0.),gridScale);
+	}
+	public InterpolatingElevationCache() {
+		this(null,new Coordinate(1.,1.));
+	}
+
+	public InterpolatingElevationCache(ConfigManager config, ConfigurationSection params) {
+		this();
+		initFromConfig(config, params);
+	}
+
+	@Override
+	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+		for(String param : params.getKeys(false)) {
+			if( param.equalsIgnoreCase("provider") ) {
+				provider = config.createSingleConfigurable(ElevationProvider.class,
+						params.getConfigurationSection(param), provider);
+			} else {
+				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+			}
+		}
 	}
 
 	@Override
@@ -47,13 +76,13 @@ public class InterpolatingElevationCache implements ElevationProvider {
 		List<Double> q = fetchElevations(Lists.asList(query,new Coordinate[0]));
 		return q.get(0);
 	}
-	
+
 	@Override
 	public List<Double> fetchElevations(List<Coordinate> queries) throws DataUnavailableException {
 		ArrayList<Double> results = new ArrayList<Double>(queries.size());
 		ArrayList<Point> uncached = new ArrayList<Point>();
 		ArrayList<Integer> uncachedIndices = new ArrayList<Integer>();
-		
+
 		// Find uncached points
 		int qnum=0;
 		for(Coordinate query : queries) {
@@ -67,25 +96,25 @@ public class InterpolatingElevationCache implements ElevationProvider {
 				uncached.add(gridLoc);
 				uncachedIndices.add(qnum);
 				results.add(null);
-				
+
 			}
-			
+
 			qnum++;
 		}
-		
+
 		// Add neighbors to precache
 		prefetchNeighbors(queries);
-		
+
 		if(uncached.size() == 0) {
 			// Fully cached
 			return results;
 		}
-		
+
 		// remove requested points from prefetchStack to remove redundancy
 		for(Point p : uncached) {
 			prefetchStack.remove(p);
 		}
-		
+
 		// Fill uncached queue with prefetch points
 		for(int i=((uncached.size()-1)%MAX_ELEVATIONS_PER_SUBREQUEST)+1;
 			i< MAX_ELEVATIONS_PER_SUBREQUEST && !prefetchStack.isEmpty(); i++)
@@ -97,7 +126,7 @@ public class InterpolatingElevationCache implements ElevationProvider {
 			uncached.add(gridLoc);
 		}
 		assert(uncached.size()%MAX_ELEVATIONS_PER_SUBREQUEST == 0 || prefetchStack.isEmpty());
-		
+
 		// Fetch results for uncached
 		for(int page=0;page < uncached.size(); page += MAX_ELEVATIONS_PER_SUBREQUEST) {
 			int pageEnd = Math.min(uncached.size(), page+MAX_ELEVATIONS_PER_SUBREQUEST);
@@ -107,31 +136,31 @@ public class InterpolatingElevationCache implements ElevationProvider {
 			List<Coordinate> currRequest = lattice.getCoordinates(currRequestPts);
 			// Actual call to provider
 			List<Double> elevations = provider.fetchElevations(currRequest);
-			
+
 			assert(elevations.size() == currRequest.size());
-			
+
 			// Store results & cache them
 			Iterator<Double> elevationsIt = elevations.iterator();
 			Iterator<Integer> currIndexIt = currIndices.iterator();
 			Iterator<Point> currRequestIt = currRequestPts.iterator();
 			while(currIndexIt.hasNext()) {
-				
+
 				assert(currRequestIt.hasNext()); // Should be at least as large due to prefetching
-				assert(elevationsIt.hasNext()); 
-				
+				assert(elevationsIt.hasNext());
+
 				int index = currIndexIt.next();
 				Point gridLoc = currRequestIt.next();
 				Double elevation = elevationsIt.next();
-				
+
 				// Store results
 				results.set(index,elevation);
 				cache.put(gridLoc, elevation);
 			}
-			
+
 			// Remaining results were prefetched.
 			while(elevationsIt.hasNext()) {
 				assert(currRequestIt.hasNext());
-				
+
 				Point gridLoc = currRequestIt.next();
 				Double elevation = elevationsIt.next();
 
@@ -139,8 +168,8 @@ public class InterpolatingElevationCache implements ElevationProvider {
 			}
 
 		}
-		
-		
+
+
 		return results;
 	}
 
@@ -148,7 +177,7 @@ public class InterpolatingElevationCache implements ElevationProvider {
 	/**
 	 * Suggests a set of coordinates as likely candidates for future calls,
 	 * allowing them to be pre-fetched in the background.
-	 * 
+	 *
 	 * Useful for initially filling a new cache.
 	 * @param queries
 	 */

@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
@@ -20,6 +21,9 @@ import org.bukkit.util.NumberConversions;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
+import us.bliven.bukkit.earthcraft.gis.EquirectangularProjection;
+import us.bliven.bukkit.earthcraft.gis.FlatElevationProvider;
+import us.bliven.bukkit.earthcraft.gis.LinearElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
@@ -29,13 +33,13 @@ import com.vividsolutions.jts.geom.Coordinate;
  * Generates real-world maps
  * @author Spencer Bliven
  */
-public class EarthGen extends ChunkGenerator {
+public class EarthGen extends ChunkGenerator implements Configurable {
 	Logger log;
 
-	private final MapProjection mapProjection;
-	private final ElevationProjection elevationProjection;
-	private final ElevationProvider elevationProvider;
-	private final Coordinate spawn;
+	private MapProjection mapProjection;
+	private ElevationProjection elevationProjection;
+	private ElevationProvider elevationProvider;
+	private Coordinate spawn;
 
 	private final int defaultBlockHeight = 1;
 
@@ -55,56 +59,100 @@ public class EarthGen extends ChunkGenerator {
 		this.elevationProjection = elevProjection;
 		this.elevationProvider = elevation;
 		this.spawn = spawn;
-		this.log = plugin.getLogger();
-		if(this.log == null) this.log = Logger.getLogger(EarthGen.class.getName());
 
-		Location origin = mapProjection.coordinateToLocation(null, new Coordinate(0,0,0));
-		this.seaLevel = origin.getBlockY();
+		postInit();
+	}
 
-		Location sand = mapProjection.coordinateToLocation(null, new Coordinate(0,0,2));
-		this.sandLevel = sand.getBlockY();
+	/**
+	 * Reset parameters after initializing the main parameters
+	 * @param plugin
+	 */
+	private void postInit() {
+		this.log = null;
+		if( plugin != null ) {
+			this.log = plugin.getLogger();
+		}
+		if(this.log == null) {
+			this.log = Logger.getLogger(EarthGen.class.getName());
+		}
 
-//		log.info("Sea level at "+seaLevel);
-//		log.info("Beach level at "+sandLevel);
+		this.seaLevel = NumberConversions.floor(elevationProjection.elevationToY(0.));
+		this.sandLevel = NumberConversions.floor(elevationProjection.elevationToY(2.));
 
 		this.spawnOcean = true;
 	}
 
+	public EarthGen(Plugin plugin) {
+		this(plugin, new EquirectangularProjection(), new LinearElevationProjection(),
+				new FlatElevationProvider(), new Coordinate( 0, 0) );
+	}
+
+	/**
+	 * @deprecated Use only with {@link #initFromConfig}
+	 */
+	@Deprecated
+	public EarthGen() {
+		this(null);
+	}
+
+	@Override
+	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+		plugin = config.getPlugin();
+
+		for(String param : params.getKeys(false)) {
+			if( param.equalsIgnoreCase("mapProjection") ) {
+				mapProjection = config.createSingleConfigurable(MapProjection.class,
+						params.getConfigurationSection(param),
+						mapProjection);
+			} else if( param.equalsIgnoreCase("elevationProjection") ) {
+				elevationProjection = config.createSingleConfigurable(ElevationProjection.class,
+						params.getConfigurationSection(param),
+						elevationProjection);
+			} else if( param.equalsIgnoreCase("spawn") ) {
+				spawn = config.getCoordinate(params,param,spawn);
+			} else if( param.equalsIgnoreCase("sources") ) {
+				// initialize data sources
+				initSourcesFromConfig(config,params.getConfigurationSection(param));
+			} else if( param.equalsIgnoreCase("spawnOcean") ) {
+				spawnOcean = params.getBoolean(param);
+			} else {
+				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+			}
+		}
+
+    	// Check that the ElevationProvider is working
+    	try {
+			elevationProvider.fetchElevation(spawn);
+		} catch (DataUnavailableException e) {
+			log.log(Level.SEVERE, "Unable to load elevation provider!",e);
+			elevationProvider = new FlatElevationProvider();
+		}
+
+		// Clean up after changes
+		postInit();
+	}
+
+	/**
+	 * Initialize data sources. For instance, elevation, biomes, hydrology, etc
+	 * @param config
+	 * @param params
+	 */
+	private void initSourcesFromConfig(ConfigManager config,
+			ConfigurationSection params) {
+		for(String param : params.getKeys(false)) {
+			if( param.equalsIgnoreCase("elevation") ) {
+				elevationProvider = config.createSingleConfigurable(ElevationProvider.class,
+						params.getConfigurationSection(param),
+						elevationProvider);
+			} else {
+				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+			}
+		}
+	}
 
 	public int getSeaLevel() {
 		return seaLevel;
 	}
-
-
-	public void setSeaLevel(int seaLevel) {
-		this.seaLevel = seaLevel;
-	}
-
-
-	public int getSandLevel() {
-		return sandLevel;
-	}
-
-
-	public void setSandLevel(int sandLevel) {
-		this.sandLevel = sandLevel;
-	}
-
-
-	public boolean isSpawnOcean() {
-		return spawnOcean;
-	}
-
-
-	public void setSpawnOcean(boolean spawnOcean) {
-		this.spawnOcean = spawnOcean;
-	}
-
-
-	public int getDefaultBlockHeight() {
-		return defaultBlockHeight;
-	}
-
 
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world) {
@@ -125,6 +173,7 @@ public class EarthGen extends ChunkGenerator {
 	 */
 	@Override
 	public boolean canSpawn(World world, int x, int z) {
+		//TODO spawn on safe land
 		return true;
 	}
 
