@@ -278,8 +278,10 @@ public class EarthcraftPlugin extends JavaPlugin {
 
 		Location loc = player.getLocation();
 		MapProjection proj = gen.getMapProjection();
-
 		Coordinate coord = proj.locationToCoordinate(loc);
+
+		double elev = gen.getElevationProjection().yToElevation(loc.getY());
+		coord.z = elev;
 
 		Coordinate localScale = proj.getLocalScale(coord);
 		String message = String.format("%s located at %s", player.getName(),
