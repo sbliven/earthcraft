@@ -59,11 +59,17 @@ worlds:
         # Fetch SMRT elevation data
         InterpolatedCoverageElevationProvider:
           provider:
-            SRTMPlusElevationProvider: {}
+            SRTMPlusElevationProvider:
               cache: /Users/blivens/dev/minecraft/srtm
               # tile the map over and over, or just truncate it at the dateline
               # and show water?
               wrap: Yes
+      biome:
+        # Use default minecraft biomes
+        DefaultBiomeProvider: {}
+
+        # Calculate biomes based on latitude and elevation
+        WhittakerBiomeProvider: {}
 
     # Should we spawn water? (Useful when debugging bathymetry)
     spawnOcean: Yes

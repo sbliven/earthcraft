@@ -18,7 +18,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.util.NumberConversions;
 
+import us.bliven.bukkit.earthcraft.gis.BiomeProvider;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
+import us.bliven.bukkit.earthcraft.gis.DefaultBiomeProvider;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.EquirectangularProjection;
@@ -39,6 +41,8 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	private MapProjection mapProjection;
 	private ElevationProjection elevationProjection;
 	private ElevationProvider elevationProvider;
+	private BiomeProvider biomeProvider;
+
 	private Coordinate spawn;
 
 	private final int defaultBlockHeight = 1;
@@ -52,12 +56,13 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 
 	public EarthGen(Plugin plugin, MapProjection mapProjection,
 			ElevationProjection elevProjection, ElevationProvider elevation,
-			Coordinate spawn) {
+			BiomeProvider biome, Coordinate spawn) {
 		super();
 		this.plugin = plugin;
 		this.mapProjection = mapProjection;
 		this.elevationProjection = elevProjection;
 		this.elevationProvider = elevation;
+		this.biomeProvider = biome;
 		this.spawn = spawn;
 
 		postInit();
@@ -84,7 +89,8 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 
 	public EarthGen(Plugin plugin) {
 		this(plugin, new EquirectangularProjection(), new LinearElevationProjection(),
-				new FlatElevationProvider(), new Coordinate( 0, 0) );
+				new FlatElevationProvider(), new DefaultBiomeProvider(),
+				new Coordinate( 0, 0) );
 	}
 
 	/**
@@ -144,6 +150,10 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				elevationProvider = config.createSingleConfigurable(ElevationProvider.class,
 						params.getConfigurationSection(param),
 						elevationProvider);
+			} else if( param.equalsIgnoreCase("biome") ) {
+				biomeProvider = config.createSingleConfigurable(BiomeProvider.class,
+						params.getConfigurationSection(param),
+						biomeProvider);
 			} else {
 				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
 			}
@@ -201,9 +211,33 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				setBlock(result,x,y,z, (byte) Material.BEDROCK.getId() );
 				y++;
 
-				int height = getBlockHeight(world, chunkx*16+x, chunkz*16+z);
+				// Get lat/lon
+				int worldx = chunkx*16+x;
+				int worldz = chunkz*16+z;
+				Coordinate coord = getLatLon(world, worldx, worldz );
 
-				setBiome(x,height,z,biomes);
+				// Get elevation
+				int height;
+				try {
+					height = getBlockHeight(world,coord);
+				} catch (DataUnavailableException e) {
+					// Severe but expected exception
+					log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
+					height = defaultBlockHeight;
+				} catch (Exception e) {
+					// Unexpected exception; indicates a bug
+					log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
+							worldx+","+worldz +
+							" (" + ProjectionTools.latlonString(coord) + ")", e);
+					height = defaultBlockHeight;
+				}
+
+				// Set the biome
+				//setBiome(x,height,z,biomes);
+				biomeProvider.setBiome(this, biomes, coord, x,z);
+
+
+
 				int stoneHeight = height - 16;
 
 				for(;y<stoneHeight; y++) {
@@ -238,20 +272,12 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 		return result;
 	}
 
-	private void setBiome(int x, int height, int z, BiomeGrid biomes) {
-		int mountainLevel = (seaLevel+256)/2;
-		if(height < seaLevel) {
-			biomes.setBiome(x, z, Biome.OCEAN);
-		} else if( height <= sandLevel) {
-			biomes.setBiome(x, z, Biome.BEACH);
-		} else if( height <= mountainLevel) {
-			biomes.setBiome(x, z, Biome.FOREST_HILLS);
-		} else {
-			biomes.setBiome(x, z, Biome.ICE_MOUNTAINS);
-		}
-
+	protected Coordinate getLatLon(World world, int worldx, int worldz) {
+		Location root = new Location(world,worldx,0,worldz);
+		// Translate x/z to lat/lon
+		Coordinate coord = mapProjection.locationToCoordinate(root);
+		return coord;
 	}
-
 
 	/**
 	 * Calculate the elevation for a position
@@ -260,30 +286,13 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	 * @param worldz
 	 * @return
 	 */
-	public int getBlockHeight(World world, int worldx, int worldz) {
-		Location root = new Location(world,worldx,0,worldz);
-		// Translate x/z to lat/lon
-		Coordinate coord = mapProjection.locationToCoordinate(root);
-		Double elev;
-		try {
-			// get elevation in m
-			elev  = elevationProvider.fetchElevation(coord);
-		} catch (DataUnavailableException e) {
-			// Severe but expected exception
-			log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
-			elev = Double.NaN;
-		} catch (Exception e) {
-			// Unexpected exception; indicates a bug
-			log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
-					worldx + "," + worldz +
-					" (" + ProjectionTools.latlonString(coord) + ")", e);
-			elev = Double.NaN;
-		}
+	public int getBlockHeight(World world, Coordinate coord) throws DataUnavailableException{
+
+		// get elevation in m
+		Double elev  = elevationProvider.fetchElevation(coord);
 
 		// translate elevation to blocks
 		double y = elevationProjection.elevationToY(elev);
-
-		root = mapProjection.coordinateToLocation(world, coord);
 
 		if( y == Double.NaN ) {
 			return defaultBlockHeight;
@@ -325,11 +334,13 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 		return elevationProjection;
 	}
 
+	public BiomeProvider getBiomeProvider() {
+		return biomeProvider;
+	}
 
 	public Coordinate getSpawn() {
 		return spawn;
 	}
-
 
 
 }
