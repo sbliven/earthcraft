@@ -147,6 +147,8 @@
 								<excludes>
 									<exclude>junit:junit</exclude>
 									<exclude>io.github.lucariatias:bukkitpopulators</exclude>
+									<exclude>uk.co.jacekk.bukkit:skylandsplus</exclude>
+									<exclude>org.bukkit:*</exclude>
 								</excludes>
 							</artifactSet>
 							<transformers>
