@@ -1,5 +1,7 @@
 package us.bliven.bukkit.earthcraft;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -9,6 +11,7 @@ import java.util.logging.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.generator.BlockPopulator;
 import org.bukkit.plugin.Plugin;
 
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
@@ -309,16 +312,31 @@ public class ConfigManager {
 		// instantiate
 		T t;
 		try {
-			t = (T)klass.newInstance();
+			Constructor<?> constructor = klass.getConstructor();
+			t = (T) constructor.newInstance();
 		} catch (ClassCastException e) {
 			// Must be a Configurable T
 			log.severe(className+" is not a "+supertype.getName()+".");
 			return def;
+		} catch( NoSuchMethodException e) {
+			// No default constructor
+			log.severe("[Bug] Unable to use "+className+" because it lacks a default constructor");
+			return def;
+		} catch (IllegalArgumentException e) {
+			// Shouldn't happen–bad argument types
+			log.log(Level.SEVERE,"[Bug] Error with constructor arguments to "+className);
+			return def;
 		} catch (InstantiationException e) {
+			// Abstract class
 			log.log(Level.SEVERE,"Error instantiating "+className,e);
 			return def;
 		} catch (IllegalAccessException e) {
+			// constructor is private
 			log.log(Level.SEVERE,"Error instantiating "+className,e);
+			return def;
+		} catch (InvocationTargetException e) {
+			// Constructor threw an exception
+			log.log(Level.SEVERE, "Exception while creating "+className,e);
 			return def;
 		}
 

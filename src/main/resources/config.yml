@@ -23,7 +23,7 @@ worlds:
         #elev: -40.0 # meters; Elevation of the bottom of bedrock
         seaLevel: 64 # blocks; height of first dry block
     # location of the spawn point, in degrees
-    spawn: [ 32.73, -117.26 ]
+    spawn: [ 32.6615, -117.2475 ] #Pt. Loma, San Diego, CA
     # data sources
     sources:
       # source for elevation data
@@ -70,8 +70,35 @@ worlds:
 
         # Calculate biomes based on latitude and elevation
         WhittakerBiomeProvider: {}
+      # Use standard named populator sets
+      populatorSet: Bare
+      populatorSet: BukkitPopulators
+      # Load additional custom populators by name
+      #populators:
+      #- GlowstoneReefPopulator
+
 
     # Should we spawn water? (Useful when debugging bathymetry)
     spawnOcean: Yes
+
+  # Fits the whole world onscreen
+  # Dramatic, but extremely slow and memory intensive (eg 15GB of virtual memory).
+  "bigworld":
+    mapProjection:
+      EquirectangularProjection:
+        origin: [0,0]
+        scale: [1, 1] # SLOOOOOW. Parses the whole world (1.87 GB for SMTP+)
+    elevationProjection:
+      LinearElevationProjection:
+        scale: 1000
+    spawn: [ 0, 0 ]
+    sources:
+      elevation:
+        InterpolatedCoverageElevationProvider:
+          provider:
+            SRTMPlusElevationProvider:
+              cache: /Users/blivens/dev/minecraft/srtm
+      biome:
+        WhittakerBiomeProvider: {}
 
 # vi: ts=2 sw=2 et

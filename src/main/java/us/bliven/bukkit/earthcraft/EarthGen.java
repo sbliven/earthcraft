@@ -1,7 +1,12 @@
 package us.bliven.bukkit.earthcraft;
 
 import io.github.lucariatias.bukkitpopulators.BukkitPopulators;
+import io.github.lucariatias.bukkitpopulators.OrePopulator;
+import io.github.lucariatias.bukkitpopulators.populators.GlowstoneReefPopulator;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
@@ -10,7 +15,7 @@ import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
@@ -54,6 +59,11 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 
 	private Plugin plugin;
 
+
+	// Store populator names at init for later instantiation
+	private String populatorSet;
+	private List<String> populatorNames;
+
 	public EarthGen(Plugin plugin, MapProjection mapProjection,
 			ElevationProjection elevProjection, ElevationProvider elevation,
 			BiomeProvider biome, Coordinate spawn) {
@@ -64,6 +74,8 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 		this.elevationProvider = elevation;
 		this.biomeProvider = biome;
 		this.spawn = spawn;
+		this.populatorSet = "BukkitPopulators";
+		this.populatorNames = new ArrayList<String>();
 
 		postInit();
 	}
@@ -154,7 +166,11 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				biomeProvider = config.createSingleConfigurable(BiomeProvider.class,
 						params.getConfigurationSection(param),
 						biomeProvider);
-			} else {
+			} else if( param.equalsIgnoreCase("populatorSet") ) {
+				populatorSet = params.getString(param,populatorSet);
+			} else if( param.equalsIgnoreCase("populators") ) {
+				populatorNames.addAll(params.getStringList(param));
+			} else  {
 				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
 			}
 		}
@@ -166,16 +182,95 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world) {
+		List<BlockPopulator> populators = new ArrayList<BlockPopulator>();
+		addPopulatorSet(world, populatorSet, populators);
+		addPopulators(world, populatorNames, populators);
+		return populators;
+	}
+
+	private void addPopulatorSet(World world, String setName, List<BlockPopulator> populators) {
+		PluginManager pm = plugin.getServer().getPluginManager();
+
+		log.info("No populators.");
+
+		if( setName.equalsIgnoreCase("Bare")) {
+			// No populators
+		} else if( setName.equalsIgnoreCase("BukkitPopulators")) {
+			BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
+			if(bukkitpopulators != null) {
+				List<BlockPopulator> pops =  bukkitpopulators.getDefaultPopulators(world);
+				log.info("Read "+pops.size()+" populators from BukkitPopulators");
+				populators.addAll(pops);
+			} else {
+				log.severe("BukkitPopulators plugin not installed");
+			}
+		} else {
+			log.severe("Unknown populatorSet "+setName);
+		}
+	}
+	private void addPopulators(World world, List<String> classNames, List<BlockPopulator> populators) {
+		ClassLoader cl = plugin.getClass().getClassLoader();
+
+		// packages to search for classes, in order
+		List<String> packages = new ArrayList<String>();
+		packages.add("");
 		PluginManager pm = plugin.getServer().getPluginManager();
 		BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
 		if(bukkitpopulators != null) {
-			List<BlockPopulator> pops =  bukkitpopulators.getDefaultPopulators(world);
-			log.info("Read "+pops.size()+" populators from BukkitPopulators");
-			return pops;
+			packages.add(OrePopulator.class.getPackage().getName());
+			packages.add(GlowstoneReefPopulator.class.getPackage().getName());
 		}
-		log.info("No populators.");
 
-		return super.getDefaultPopulators(world);
+		for(String className: classNames) {
+			Class<?> klass = null;
+			for(String pkg : packages) {
+				try {
+					String fullName = (pkg.isEmpty()?"":(pkg+"."))+className;
+					klass = cl.loadClass(fullName);
+					//log.info("Found "+pkg+className);
+					break;
+				} catch (ClassNotFoundException e) {
+					//not in this package
+					//log.info("Unable to find "+pkg+className);
+				}
+			}
+			if( klass == null) {
+				log.severe("Unable to find populator "+className);
+				continue;
+			}
+
+			BlockPopulator pop;
+			try {
+				Constructor<?> constructor = klass.getConstructor();
+				pop = (BlockPopulator) constructor.newInstance();
+			} catch (ClassCastException e) {
+				// Not a BlockPopulator
+				log.severe(className+" is not a BlockPopulator.");
+				continue;
+			} catch( NoSuchMethodException e) {
+				// No default constructor
+				log.severe("Unable to use "+className+" because it lacks a default constructor");
+				continue;
+			} catch (IllegalArgumentException e) {
+				// Shouldn't happen–bad argument types
+				log.log(Level.SEVERE,"[Bug] Error with constructor arguments to "+className);
+				continue;
+			} catch (InstantiationException e) {
+				// Abstract class
+				log.log(Level.SEVERE,"Can't instantiate abstract class "+className,e);
+				continue;
+			} catch (IllegalAccessException e) {
+				// constructor is private
+				log.log(Level.SEVERE,className+" lacks a public default constructor");
+				continue;
+			} catch (InvocationTargetException e) {
+				// Constructor threw an exception
+				log.log(Level.SEVERE, "Exception while creating "+className,e);
+				continue;
+			}
+
+			populators.add(pop);
+		}
 	}
 
 	/**
