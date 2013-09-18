@@ -2,10 +2,10 @@ package us.bliven.bukkit.earthcraft.gis;
 
 import java.util.logging.Logger;
 
+import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.generator.ChunkGenerator.BiomeGrid;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.util.noise.PerlinOctaveGenerator;
 
 import us.bliven.bukkit.earthcraft.ConfigManager;
 import us.bliven.bukkit.earthcraft.Configurable;
@@ -20,35 +20,79 @@ import com.vividsolutions.jts.geom.Coordinate;
  */
 public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 
+	// Temperature parameters
+	private double equatorTemp;
+	private double lapseRate;
+	private double latitudeGradient;
+	private PerlinOctaveGenerator tempNoise;
+	private double tempNoiseScale;
+	// Precipitation parameters
+	private PerlinOctaveGenerator precipNoise;
+	private double precipNoiseScale;
+
 	private Logger log;
+
 	public WhittakerBiomeProvider() {
+		// Default lapse rate from International Civil Aviation Organization
+		// https://en.wikipedia.org/wiki/Lapse_rate#Environmental_lapse_rate
+		lapseRate = 6.49/1000.; //in degC/m elevation
+		// Weighted average of gradients in figure 3 of
+		//   Baumann, H., & Doherty, O. (2013). Decadal Changes in the World's
+		//   Coastal Latitudinal Temperature Gradients. PloS one, 8(6), e67596.
+		// weighted by N
+		latitudeGradient = 0.462439024; //in degC/deg lat toward equator
+		// Typical max temp from Baumann
+		equatorTemp = 30.; // in degC
+		tempNoise = null; //initialize later
+		tempNoiseScale = 1/64.;
+		precipNoise = null;
+		precipNoiseScale = 1/64.;
+
+
 		log = Logger.getLogger(getClass().getName());
 	}
 
 	@Override
 	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
 		for(String param : params.getKeys(false)) {
-//			if( param.equalsIgnoreCase("elev") ) {
-//				elevation = params.getDouble(param,elevation);
-//			} else {
+			if( param.equalsIgnoreCase("lapseRate") ) {
+				lapseRate = params.getDouble(param,lapseRate);
+			} else if( param.equalsIgnoreCase("equatorTemp") ) {
+				equatorTemp = params.getDouble(param,equatorTemp);
+			} else if( param.equalsIgnoreCase("equatorTemp") ) {
+				equatorTemp = params.getDouble(param,equatorTemp);
+			} else {
 				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-//			}
+			}
 		}
 	}
 
+	public double getTemperature(Coordinate coord) {
+		double temp = equatorTemp;
+		temp -= latitudeGradient*Math.abs(coord.x);
+		temp -= lapseRate*Math.abs(coord.z);
+
+		return temp;
+	}
+
+	public double getPrecipitation(Coordinate coord) {
+		double precip = 20;
+
+		return precip;
+	}
+
 	@Override
-	public void setBiome(EarthGen gen, BiomeGrid biomes, Coordinate coord, int x, int z) {
-		if( x < 0 || 16 <= x || z < 0 || 16 <= z) {
-			throw new IllegalArgumentException("Coords must be in chunk, but are "+x+","+z);
-		}
+	public Biome getBiome(EarthGen gen, World world, Coordinate coord) {
 		ElevationProvider provider = gen.getElevationProvider();
 
-		double elev;
-		try {
-			elev = provider.fetchElevation(coord);
-		} catch (DataUnavailableException e) {
-			// TODO handle errors consistently
-			elev = Double.NEGATIVE_INFINITY;
+		double elev = coord.z;
+		if( Double.isNaN(elev)) {
+			try {
+				elev = provider.fetchElevation(coord);
+			} catch (DataUnavailableException e) {
+				// TODO handle errors consistently
+				elev = Double.NEGATIVE_INFINITY; // Use ocean
+			}
 		}
 
 		double seaLevel = 0;
@@ -56,13 +100,13 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		double mountainLevel = 2000;
 
 		if(elev < seaLevel) {
-			biomes.setBiome(x, z, Biome.OCEAN);
+			return Biome.OCEAN;
 		} else if( elev <= sandLevel) {
-			biomes.setBiome(x, z, Biome.BEACH);
+			return Biome.BEACH;
 		} else if( elev <= mountainLevel) {
-			biomes.setBiome(x, z, Biome.FOREST_HILLS);
+			return Biome.FOREST_HILLS;
 		} else {
-			biomes.setBiome(x, z, Biome.ICE_MOUNTAINS);
+			return Biome.ICE_MOUNTAINS;
 		}
 
 	}

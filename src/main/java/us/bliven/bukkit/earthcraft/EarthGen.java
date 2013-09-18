@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.generator.BlockPopulator;
@@ -333,9 +334,8 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				}
 
 				// Set the biome
-				//setBiome(x,height,z,biomes);
-				biomeProvider.setBiome(this, biomes, coord, x,z);
-
+				Biome biome = biomeProvider.getBiome(this, world, coord);
+				biomes.setBiome(x, z, biome);
 
 
 				int stoneHeight = height - 16;
@@ -382,14 +382,18 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	/**
 	 * Calculate the elevation for a position
 	 * @param world
-	 * @param worldx
-	 * @param worldz
-	 * @return
+	 * @param coord lat/lon coordinate. coord.z will be set to the fetched elevation
+	 * @return block height (y); number of solid blocks to generate
 	 */
 	public int getBlockHeight(World world, Coordinate coord) throws DataUnavailableException{
 
 		// get elevation in m
 		Double elev  = elevationProvider.fetchElevation(coord);
+
+		// Side effect: Store elevation into coord
+		if(!Double.isNaN(elev)) {
+			coord.z = elev;
+		}
 
 		// translate elevation to blocks
 		double y = elevationProjection.elevationToY(elev);

@@ -2,8 +2,10 @@ package us.bliven.bukkit.earthcraft.gis;
 
 import java.util.logging.Logger;
 
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
 import us.bliven.bukkit.earthcraft.ConfigManager;
 import us.bliven.bukkit.earthcraft.Configurable;
@@ -31,8 +33,10 @@ public class DefaultBiomeProvider implements BiomeProvider,Configurable {
 	}
 
 	@Override
-	public void setBiome(EarthGen gen, BiomeGrid biomes, Coordinate coord, int chunkx, int chunkz) {
+	public Biome getBiome(EarthGen gen, World world, Coordinate coord) {
 		// Do nothing; use the default biome
+		Location loc = gen.getMapProjection().coordinateToLocation(world, coord);
+		return world.getBiome(loc.getBlockX(),loc.getBlockZ());
 	}
 
 }
