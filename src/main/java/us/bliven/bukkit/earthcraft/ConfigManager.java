@@ -11,11 +11,9 @@ import java.util.logging.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.generator.BlockPopulator;
 import org.bukkit.plugin.Plugin;
 
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
-import us.bliven.bukkit.earthcraft.gis.MapProjection;
 
 import com.vividsolutions.jts.geom.Coordinate;
 

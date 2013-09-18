@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,13 +19,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.java.PluginClassLoader;
 
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
 import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
-import com.sun.media.jai.operator.ImageReadDescriptor;
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class EarthcraftPlugin extends JavaPlugin {

@@ -8,12 +8,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Random;
 
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * @author Spencer Bliven
