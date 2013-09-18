@@ -278,7 +278,12 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	 */
 	@Override
 	public boolean canSpawn(World world, int x, int z) {
-		//TODO spawn on safe land
+		Block highest = world.getHighestBlockAt(x, z);
+		if( highest.isLiquid() )
+			return false;
+		Material mat = highest.getType();
+		if( mat == Material.FIRE )
+			return false;
 		return true;
 	}
 
