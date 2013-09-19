@@ -148,11 +148,11 @@ public class EquirectangularProjection implements MapProjection, Configurable {
 	public Coordinate getLocalScale(Coordinate coord) {
 		Coordinate wrapped = ProjectionTools.wrapCoordinate(coord);
 		double lonScale;
-		if( Math.abs(wrapped.y) == 90. ) {
+		if( Math.abs(wrapped.x) == 90. ) {
 			// Poorly defined at the poles!
 			lonScale = Double.POSITIVE_INFINITY;
 		} else {
-			lonScale = 1.0/Math.cos(wrapped.y*Math.PI/180);
+			lonScale = 1.0/Math.cos(wrapped.x*Math.PI/180);
 		}
 
 		return new Coordinate(scale.x, scale.y*lonScale, scale.z);
