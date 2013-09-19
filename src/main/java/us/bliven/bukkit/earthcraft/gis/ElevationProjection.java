@@ -23,4 +23,11 @@ public interface ElevationProjection {
 	 */
 	public double elevationToY(double elev);
 
+	/**
+	 * Get the local scale at a particular elevation
+	 * @param elev
+	 * @return The scale, in m/block
+	 */
+	public double getLocalScale(double elev);
+
 }

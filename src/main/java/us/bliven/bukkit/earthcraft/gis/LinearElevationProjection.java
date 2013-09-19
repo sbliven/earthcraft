@@ -73,4 +73,10 @@ public class LinearElevationProjection implements ElevationProjection, Configura
 		return locY;
 	}
 
+	@Override
+	public double getLocalScale(double elev) {
+		// constant scale
+		return scale;
+	}
+
 }
