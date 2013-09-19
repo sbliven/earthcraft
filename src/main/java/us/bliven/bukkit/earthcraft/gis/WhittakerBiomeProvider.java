@@ -16,7 +16,7 @@ import static org.bukkit.block.Biome.PLAINS;
 import static org.bukkit.block.Biome.TAIGA;
 import static org.bukkit.block.Biome.TAIGA_HILLS;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -128,8 +128,8 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		// d e f
 		// g h i
 
-		// use kernel dz/dx = (f-e)/scale.x
-		//			  dz/dy = (b-e)/scale.y
+		// use kernel dz/dx = (b-e)/scale.x
+		//			  dz/dy = (f-e)/scale.y
 
 		// Alternately, could use central finite differences
 		// See http://www.ce.utexas.edu/prof/maidment/giswr2011/docs/Slope.pdf
@@ -141,8 +141,8 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 			double e = coord.z;
 			double f = provider.fetchElevation(new Coordinate(coord.x+scale.x,coord.y));
 
-			double dx = (f-e)/scale.x;
-			double dy = (b-e)/scale.y;
+			double dx = (b-e)/scale.x;
+			double dy = (f-e)/scale.y;
 
 			return Math.sqrt(dx*dx+dy*dy); // in m/deg
 		} catch (DataUnavailableException e) {
@@ -192,7 +192,7 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 
 		double hillSlope = 2.0; //In blocks/block
 		double elevScale = gen.getElevationProjection().getLocalScale(elev); //m/block
-		boolean hilly = slope > hillSlope*elevScale*scale.x;
+		boolean hilly = slope > hillSlope*elevScale/scale.x;
 
 		// Special cases based on elevation
 		if(elev < seaLevel) {
@@ -253,14 +253,15 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 	}
 
 	public Map<String,String> getClimateInfo(EarthGen gen, World world, Coordinate coord) {
-		Map<String,String> info = new HashMap<String, String>();
+		Map<String,String> info = new LinkedHashMap<String, String>();
 
 		ElevationProvider provider = gen.getElevationProvider();
+		MapProjection mapProj = gen.getMapProjection();
 
 		double temp = getTemperature(coord);
 		double precip = getPrecipitation(coord, temp);
 
-		Coordinate scale = gen.getMapProjection().getLocalScale(coord); // deg (for 1 block changes)
+		Coordinate scale = mapProj.getLocalScale(coord); // deg (for 1 block changes)
 		double slope = getSlope(coord,scale,provider); // m/deg
 
 
@@ -268,14 +269,14 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		if( Double.isNaN(elev) )
 			elev = Double.NEGATIVE_INFINITY; // Use ocean
 
-		double hillSlope = 2.0; //In blocks/block
-		double elevScale = gen.getElevationProjection().getLocalScale(elev); //m/block
-		double minHillSlope = hillSlope*elevScale*scale.x; // m/deg
+		double hillSlope = 2.0; //In blocks z/block y
+		double elevScale = gen.getElevationProjection().getLocalScale(elev); //m/block z
+		double minHillSlope = hillSlope*elevScale/scale.x; // m/deg
 
-		info.put("Temperature", Double.toString(temp) );
-		info.put("Precipitation", Double.toString(precip) );
-		info.put("Slope", Double.toString(slope) );
-		info.put("Hill Slope", Double.toString(minHillSlope) );
+		info.put("Temperature", String.format("%.1f C", temp));
+		info.put("Precipitation",String.format("%.1f cm", precip));
+		info.put("Slope",String.format("%.4f m/deg", slope));
+		info.put("Hill Slope", String.format("%.4f m/deg", minHillSlope) );
 
 		return info;
 
