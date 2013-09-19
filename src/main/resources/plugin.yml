@@ -27,7 +27,9 @@ commands:
     aliases: [ectp]
   earthelev:
     description: Get the elevation at a particular coordinate
-    usage: /<command> [lat lon]
+    usage: |
+      /<command> [lat lon]
+      /<command> [landmark]
     permission: earthcraft.pos
     permission-message: You don't have permission <permission>
     aliases: [ecelev]

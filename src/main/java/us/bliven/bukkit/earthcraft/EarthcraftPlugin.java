@@ -152,7 +152,7 @@ public class EarthcraftPlugin extends JavaPlugin {
 			return onPosCommand(sender,args);
     	} else if(name.equalsIgnoreCase("earthtp")){
 			return onTPCommand(sender,args);
-    	}else if(name.equalsIgnoreCase("earthelev")) {
+    	} else if(name.equalsIgnoreCase("earthelev")) {
 			return onElevCommand(sender,args);
 		}
 
@@ -189,10 +189,20 @@ public class EarthcraftPlugin extends JavaPlugin {
 			Location loc = player.getLocation();
 			MapProjection proj = gen.getMapProjection();
 			coord = proj.locationToCoordinate(loc);
+		} else if( args.length == 1) {
+			// use landmark
+			String landmark = args[0];
+			if( !landmarks.containsKey(landmark)) {
+				sender.sendMessage("Error: Unrecognized landmark");
+				// invalid landmark
+				return false;
+			}
+			coord = landmarks.get(landmark);
 		} else if( args.length == 2) {
+			// use coordinates
 			try {
 				double lat = Double.parseDouble(args[0]);
-				double lon = Double.parseDouble(args[0]);
+				double lon = Double.parseDouble(args[1]);
 				coord = new Coordinate(lat,lon);
 			} catch(NumberFormatException e) {
 				sender.sendMessage("Error: Invalid coordinates");
