@@ -1,5 +1,6 @@
 worlds:
   # Add a section for each world using Earthcraft as a generator
+  # For properties which expect a single value, only the last value given is used.
   "world":
     # Latitude/Longitude projection
     # Currently only EquirectangularProjection is supported
@@ -13,13 +14,13 @@ worlds:
         origin: [0,0]
         # Scale of the world
         # lat/lon are in degrees/block
-        scale: [0.001, 0.001]
+        scale: [0.01, 0.01]
     # Elevation scale
     # Currently only LinearElevationProjection is supported
     elevationProjection:
       # Linear elevation scale
       LinearElevationProjection:
-        scale: 10 # meters/block
+        scale: 100 # meters/block
         #elev: -40.0 # meters; Elevation of the bottom of bedrock
         seaLevel: 64 # blocks; height of first dry block
     # location of the spawn point, in degrees
@@ -100,5 +101,8 @@ worlds:
               cache: /Users/blivens/dev/minecraft/srtm
       biome:
         WhittakerBiomeProvider: {}
+landmarks:
+  "San Diego": [32.717, -117.167 ]
+  "Seattle": [47.617,-122.233]
 
 # vi: ts=2 sw=2 et

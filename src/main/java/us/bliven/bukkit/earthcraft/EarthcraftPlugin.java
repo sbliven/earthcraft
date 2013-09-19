@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
@@ -29,12 +30,14 @@ import com.vividsolutions.jts.geom.Coordinate;
 public class EarthcraftPlugin extends JavaPlugin {
 	private Logger log = null;
 	private ConfigManager config = null;
+	private Map<String,Coordinate> landmarks = null;
 
 	// Create a new EarthGen for each world to allow configurability
 	private final Map<String,EarthGen> generators = new HashMap<String, EarthGen>();
 
 	// Permissions
 	static final String PERM_TP_OTHERS = "earthcraft.tp.others";
+
 
     @Override
 	public void onEnable(){
@@ -53,6 +56,8 @@ public class EarthcraftPlugin extends JavaPlugin {
         saveDefaultConfig();
 
         config = new ConfigManager(this);
+
+        landmarks = config.getLandmarks();
     }
 
 
@@ -151,48 +156,123 @@ public class EarthcraftPlugin extends JavaPlugin {
     /**
      * Handle tp command
      *
-     * usage: /earthtp [player] lat lon
+     * usage: /earthtp [player] lat lon [elev]
+     * 		  /earthtp [player] landmark
      * @param sender
      * @param args
      * @return
      */
 	private boolean onTPCommand(CommandSender sender, String[] args) {
-		if(args.length < 2 || 3 < args.length) {
+		// Parse parameters
+		String playerName = null;
+		Double lat = null;
+		Double lon = null;
+		Double elev = null;
+		String landmark = null;
+
+		if(args.length < 1) {
+			// invalid
+			return false;
+
+		} else if(args.length == 1) {
+			// landmark
+			landmark = args[0];
+
+		} else if(args.length == 2) {
+			// player landmark
+			// lat lon
+
+			try {
+				// assume lat lon first
+				lat = new Double(args[0]);
+				lon = new Double(args[1]);
+			} catch( NumberFormatException e) {
+				// must be player landmark
+
+				playerName = args[0];
+				landmark = args[1];
+			}
+
+		} else if(args.length == 3) {
+			// player lat lon
+			// lat lon elev
+
+			try {
+				// assume lat lon elev first
+				lat = new Double(args[0]);
+				lon = new Double(args[1]);
+				elev = new Double(args[2]);
+			} catch( NumberFormatException e) {
+				// must be player lat lon
+
+				playerName = args[0];
+				try {
+					lat = new Double(args[1]);
+					lon = new Double(args[2]);
+				} catch( NumberFormatException f) {
+					sender.sendMessage("Error: Invalid coordinates");
+					return false;
+				}
+			}
+		} else if(args.length == 4) {
+			// player lat lon elev
+			playerName = args[0];
+			try {
+				// assume lat lon elev first
+				lat = new Double(args[1]);
+				lon = new Double(args[2]);
+				elev = new Double(args[3]);
+			} catch( NumberFormatException e) {
+				sender.sendMessage("Error: Invalid coordinates");
+				return false;
+			}
+		} else {
+			//invalid
 			return false;
 		}
 
-		// Determine the teleported player
-		int argi = 0;
+		// Get teleporting player
 		Player player;
-		World world;
-
-		if(args.length == 2) {
-			// Player is itself
+		if( playerName != null ) {
+			// Use specified player
+			player = Bukkit.getPlayer(playerName);
+			if( !player.isOnline() ) {
+				sender.sendMessage("Error: "+playerName+" is offline");
+				return true; // correct usage despite error
+			}
+		} else {
+			// Use sender
 			if( ! (sender instanceof Player) ) {
 				sender.sendMessage("Error: Player required from console");
 				return false;
 			}
 			player = (Player)sender;
-			world = player.getWorld();
+		}
+		// Check for valid world
+		World world = player.getWorld();
+		ChunkGenerator cgen = world.getGenerator();
+		if(!(cgen instanceof EarthGen)) {
+			sender.sendMessage(player.getDisplayName()+" is not in an Earthcraft world.");
+			return false;
+		}
+		EarthGen gen = (EarthGen) cgen;
+
+		// Get coordinate
+		Coordinate coord;
+		if( landmark != null) {
+			// from landmark
+			if( !landmarks.containsKey(landmark)) {
+				sender.sendMessage("Error: Unrecognized landmark");
+				// invalid landmark
+				return false;
+			}
+			coord = landmarks.get(landmark);
 		} else {
-			// Use specified player
-			String playername = args[argi++];
-			player = Bukkit.getPlayer(playername);
-			if( !player.isOnline() ) {
-				sender.sendMessage("Error: "+playername+" is offline");
-				return true;
-			}
-			// If sender is in a Earthcraft world, teleport use that world
-			if( sender instanceof Player) {
-				world = ((Player)sender).getWorld();
-				if( ! generators.containsKey(world.getName()) ) {
-					world = player.getWorld();
-				}
-			} else {
-				world = player.getWorld();
-			}
+			// from coordinates
+			coord = new Coordinate(lat,lon);
 		}
 
+		// assume permission to teleport yourself, since we got the command
 		// check for permission to teleport others
 		if(!sender.equals(player)) {
 			if( ! sender.hasPermission(PERM_TP_OTHERS) ) {
@@ -200,34 +280,23 @@ public class EarthcraftPlugin extends JavaPlugin {
 			}
 		}
 
-
-		double lat,lon;
-		try {
-			lat = Double.parseDouble(args[argi++]);
-			lon = Double.parseDouble(args[argi++]);
-		} catch( NumberFormatException e) {
-			sender.sendMessage("Error: unable to parse coordinate");
-			return false;
-		}
-
-		Coordinate coord = new Coordinate(lat,lon);
-
-
-		EarthGen gen = generators.get(world.getName());
-		if( gen == null) {
-			sender.sendMessage(world.getName()+" is not an Earthcraft world.");
-			return false;
-		}
-
-		//coord.z = gen.getElevationProvider().fetchElevation(coord);
-
+		// Convert to Location
 		MapProjection proj = gen.getMapProjection();
-
 		Location loc = proj.coordinateToLocation(player.getWorld(), coord);
 
-		if(Double.isNaN(loc.getY()) ){
-			loc.setY(200);
+		if(elev != null) {
+			//Specific location
+			ElevationProjection eproj = gen.getElevationProjection();
+			double y = eproj.elevationToY(elev);
+			loc.setY(y);
+		} else {
+			// top of the world, for now
+			if(Double.isNaN(loc.getY()) ){
+				//TODO make sure this is a safe location
+				loc.setY(world.getHighestBlockYAt(loc));
+			}
 		}
+
 		log.info("Teleporting "+player.getName()+" to "+loc);
 		player.teleport(loc);
 

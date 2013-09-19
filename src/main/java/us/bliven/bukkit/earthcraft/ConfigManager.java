@@ -2,8 +2,10 @@ package us.bliven.bukkit.earthcraft;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -378,5 +380,24 @@ public class ConfigManager {
 		ConfigurationSection params = section.getConfigurationSection(className);
 
 		return createConfigurable(className, supertype, params, def);
+	}
+
+	public Map<String, Coordinate> getLandmarks() {
+		Map<String, Coordinate> placeMap = new HashMap<String, Coordinate>();
+
+		FileConfiguration config = plugin.getConfig();
+		ConfigurationSection places = config.getConfigurationSection("landmarks");
+		if( places != null ) {
+			for(String name : places.getKeys(false)) {
+				Coordinate coord = getCoordinate(places, name, null);
+				if( coord == null) {
+					log.warning("Invalid coordinate for "+name);
+				} else {
+					placeMap.put(name, coord);
+				}
+			}
+		}
+		return placeMap;
+
 	}
 }
