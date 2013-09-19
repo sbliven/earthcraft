@@ -25,6 +25,12 @@ commands:
     permission: earthcraft.tp
     permission-message: You don't have permission <permission>
     aliases: [ectp]
+  earthelev:
+    description: Get the elevation at a particular coordinate
+    usage: /<command> [lat lon]
+    permission: earthcraft.pos
+    permission-message: You don't have permission <permission>
+    aliases: [ecelev]
 permissions:
   earthcraft.*:
     description: All Earthcraft commands

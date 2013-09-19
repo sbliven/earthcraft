@@ -12,6 +12,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.OperationRegistry;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -20,7 +21,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
+import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
@@ -142,18 +145,79 @@ public class EarthcraftPlugin extends JavaPlugin {
     			return onPosCommand(sender,subargs);
     		} else if(subcmd.equalsIgnoreCase("tp")) {
     			return onTPCommand(sender,subargs);
+    		} else if(subcmd.equalsIgnoreCase("elev")) {
+    			return onElevCommand(sender,subargs);
     		}
     	} else if(name.equalsIgnoreCase("earthpos")){
 			return onPosCommand(sender,args);
     	} else if(name.equalsIgnoreCase("earthtp")){
 			return onTPCommand(sender,args);
-    	}
+    	}else if(name.equalsIgnoreCase("earthelev")) {
+			return onElevCommand(sender,args);
+		}
 
     	return false;
     }
 
 
     /**
+     * Handle elev command
+     *
+     * usage: /earthelev [lat lon]
+     *
+     * @param sender
+     * @param args
+     * @return
+     */
+    private boolean onElevCommand(CommandSender sender, String[] args) {
+
+    	if(! (sender instanceof Player) ) {
+			sender.sendMessage("Error: Not valid from the command line.");
+			return false;
+		}
+    	Player player = (Player) sender;
+    	ChunkGenerator cgen = player.getWorld().getGenerator();
+    	if(!(cgen instanceof EarthGen)) {
+    		sender.sendMessage("Error: you are not in an Earthcraft world.");
+    		return true;
+    	}
+    	EarthGen gen = (EarthGen)cgen;
+
+    	Coordinate coord;
+		if( args.length == 0) {
+			// use player's location
+			Location loc = player.getLocation();
+			MapProjection proj = gen.getMapProjection();
+			coord = proj.locationToCoordinate(loc);
+		} else if( args.length == 2) {
+			try {
+				double lat = Double.parseDouble(args[0]);
+				double lon = Double.parseDouble(args[0]);
+				coord = new Coordinate(lat,lon);
+			} catch(NumberFormatException e) {
+				sender.sendMessage("Error: Invalid coordinates");
+				return false;
+			}
+		} else {
+			return false;
+		}
+
+		// Get the elevation
+		ElevationProvider elevation = gen.getElevationProvider();
+		double elev;
+		try {
+			elev = elevation.fetchElevation(coord);
+		} catch (DataUnavailableException e) {
+			sender.sendMessage(Color.YELLOW+"Elevation: "+Color.RED+"Unavailable");
+			return true;
+		}
+
+		sender.sendMessage(Color.YELLOW+"Elevation: "+elev+" m");
+		return true;
+	}
+
+
+	/**
      * Handle tp command
      *
      * usage: /earthtp [player] lat lon [elev]
