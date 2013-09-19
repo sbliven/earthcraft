@@ -2,8 +2,10 @@ package us.bliven.bukkit.earthcraft;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,6 +14,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.OperationRegistry;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -21,11 +24,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import us.bliven.bukkit.earthcraft.gis.BiomeProvider;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
 import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
+import us.bliven.bukkit.earthcraft.gis.WhittakerBiomeProvider;
 
 import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -147,6 +152,9 @@ public class EarthcraftPlugin extends JavaPlugin {
     			return onTPCommand(sender,subargs);
     		} else if(subcmd.equalsIgnoreCase("elev")) {
     			return onElevCommand(sender,subargs);
+    		} else if(subcmd.equalsIgnoreCase("climate") ||
+    				subcmd.equalsIgnoreCase("info") ) {
+    			return onClimateCommand(sender,subargs);
     		}
     	} else if(name.equalsIgnoreCase("earthpos")){
 			return onPosCommand(sender,args);
@@ -154,16 +162,116 @@ public class EarthcraftPlugin extends JavaPlugin {
 			return onTPCommand(sender,args);
     	} else if(name.equalsIgnoreCase("earthelev")) {
 			return onElevCommand(sender,args);
+		} else if(name.equalsIgnoreCase("earthclimate") ||
+				name.equalsIgnoreCase("earthinfo")) {
+			return onClimateCommand(sender,args);
 		}
 
     	return false;
     }
 
 
-    /**
+	/**
+     * Handle climate command
+     *
+     * usage: /earthclimate [lat lon]
+     *		  /earthclimate [landmark]
+     * @param sender
+     * @param args
+     * @return
+     */
+    private boolean onClimateCommand(CommandSender sender, String[] args) {
+
+    	if(! (sender instanceof Player) ) {
+			sender.sendMessage("Error: Not valid from the command line.");
+			return false;
+		}
+    	Player player = (Player) sender;
+    	World world = player.getWorld();
+    	ChunkGenerator cgen = world.getGenerator();
+    	if(!(cgen instanceof EarthGen)) {
+    		sender.sendMessage("Error: you are not in an Earthcraft world.");
+    		return true;
+    	}
+    	EarthGen gen = (EarthGen)cgen;
+
+    	Coordinate coord;
+		if( args.length == 0) {
+			// use player's location
+			Location loc = player.getLocation();
+			MapProjection proj = gen.getMapProjection();
+			coord = proj.locationToCoordinate(loc);
+		} else if( args.length == 1) {
+			// use landmark
+			String landmark = args[0];
+			if( !landmarks.containsKey(landmark)) {
+				sender.sendMessage("Error: Unrecognized landmark");
+				// invalid landmark
+				return false;
+			}
+			coord = landmarks.get(landmark);
+		} else if( args.length == 2) {
+			// use coordinates
+			try {
+				double lat = Double.parseDouble(args[0]);
+				double lon = Double.parseDouble(args[1]);
+				coord = new Coordinate(lat,lon);
+			} catch(NumberFormatException e) {
+				sender.sendMessage("Error: Invalid coordinates");
+				return false;
+			}
+		} else {
+			return false;
+		}
+
+		// Assemble data
+		List<String> info = new ArrayList<String>();
+		String c = ChatColor.GRAY.toString();
+		String d = ChatColor.YELLOW.toString();
+
+		// Location
+		info.add(c+"Location: "+d+ProjectionTools.latlonelevString(coord));
+
+		// Elevation
+		ElevationProvider elevation = gen.getElevationProvider();
+		try {
+			double elev;
+			elev = elevation.fetchElevation(coord);
+			info.add(c+"Elevation: "+d+elev+" m");
+		} catch (DataUnavailableException e) {
+			info.add(c+"Elevation: "+Color.RED+"Unavailable");
+		}
+
+		// Scale
+		MapProjection mapProj = gen.getMapProjection();
+		ElevationProjection elevProj = gen.getElevationProjection();
+		Coordinate scale = mapProj.getLocalScale(coord);
+		scale.z = elevProj.getLocalScale(coord.z);
+		info.add(String.format("%sScale: %s%.4f degLat/-z,  %.4f degLon/x, %.1f m/y",
+				c,d,scale.x,scale.y,scale.z));
+
+		// Biome
+		BiomeProvider biome = gen.getBiomeProvider();
+		info.add(c+"Biome: "+d+ biome.getBiome(gen, world, coord));
+
+		if(biome instanceof WhittakerBiomeProvider) {
+			Map<String,String> climateInfo = ((WhittakerBiomeProvider)biome).getClimateInfo(gen, world, coord);
+			for(String prop : climateInfo.keySet()) {
+				info.add(c+prop+": "+d+climateInfo.get(prop));
+			}
+		}
+
+		sender.sendMessage(info.toArray(new String[0]));
+
+		return true;
+	}
+
+
+	/**
      * Handle elev command
      *
      * usage: /earthelev [lat lon]
+     *		  /earthelev [landmark]
      *
      * @param sender
      * @param args

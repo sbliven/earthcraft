@@ -14,7 +14,7 @@ commands:
   earthpos:
     description: Get your world position as latitude,longitude
     usage: /<command> [player]
-    permission: earthcraft.pos
+    permission: earthcraft.info
     permission-message: You don't have permission <permission>
     aliases: [ecpos]
   earthtp:
@@ -30,24 +30,32 @@ commands:
     usage: |
       /<command> [lat lon]
       /<command> [landmark]
-    permission: earthcraft.pos
+    permission: earthcraft.info
     permission-message: You don't have permission <permission>
     aliases: [ecelev]
+  earthclimate:
+    description: Print information about the climate at a location
+    usage: |
+      /<command> [lat lon]
+      /<command> [landmark]
+    permission: earthcraft.info
+    permission-message: You don't have permission <permission>
+    aliases: [ecclimate,ecinfo,earthinfo]
 permissions:
   earthcraft.*:
     description: All Earthcraft commands
     children:
-      earthcraft.pos: true
+      earthcraft.info: true
       earthcraft.tp: true
       earthcraft.tp.others: true
   earthcraft.tp:
-    description: Allows you to teleport
+    description: Allow teleportation
     default: op
   earthcraft.tp.others:
-    description: Allows you to teleport other people
+    description: Allow teleportation of other people
     default: op
     children:
       earthcraft.tp: true
-  earthcraft.pos:
-    description: Allows you to see your latitude, longitude, and elevation
+  earthcraft.info:
+    description: Permit commands which give information about world locations
     default: true

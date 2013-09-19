@@ -16,6 +16,8 @@ import static org.bukkit.block.Biome.PLAINS;
 import static org.bukkit.block.Biome.TAIGA;
 import static org.bukkit.block.Biome.TAIGA_HILLS;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.bukkit.World;
@@ -250,4 +252,32 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 
 	}
 
+	public Map<String,String> getClimateInfo(EarthGen gen, World world, Coordinate coord) {
+		Map<String,String> info = new HashMap<String, String>();
+
+		ElevationProvider provider = gen.getElevationProvider();
+
+		double temp = getTemperature(coord);
+		double precip = getPrecipitation(coord, temp);
+
+		Coordinate scale = gen.getMapProjection().getLocalScale(coord); // deg (for 1 block changes)
+		double slope = getSlope(coord,scale,provider); // m/deg
+
+
+		double elev = coord.z;
+		if( Double.isNaN(elev) )
+			elev = Double.NEGATIVE_INFINITY; // Use ocean
+
+		double hillSlope = 2.0; //In blocks/block
+		double elevScale = gen.getElevationProjection().getLocalScale(elev); //m/block
+		double minHillSlope = hillSlope*elevScale*scale.x; // m/deg
+
+		info.put("Temperature", Double.toString(temp) );
+		info.put("Precipitation", Double.toString(precip) );
+		info.put("Slope", Double.toString(slope) );
+		info.put("Hill Slope", Double.toString(minHillSlope) );
+
+		return info;
+
+	}
 }
