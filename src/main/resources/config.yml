@@ -104,5 +104,10 @@ worlds:
 landmarks:
   "San Diego": [32.717, -117.167 ]
   "Seattle": [47.617,-122.233]
+  "Gabon": [0,9.348] # West african coast at equator
+  "Kilimanjaro": [-3.068,37.350]
+  Everest: [27.98806, 86.92528]
+  Chimborazo: [-1.46917, -78.8175]
+  "Challenger Deep": [11.3733, 142.5917]
 
 # vi: ts=2 sw=2 et
