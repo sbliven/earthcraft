@@ -291,11 +291,11 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	/**
 	 * helper function for generate
 	 */
-	private void setBlock(byte[][] result, int x, int y, int z, byte blkid) {
+	private void setBlock(byte[][] result, int x, int y, int z, Material material) {
 	    if (result[y >> 4] == null) {
 	        result[y >> 4] = new byte[4096];
 	    }
-	    result[y >> 4][((y & 0xF) << 8) | (z << 4) | x] = blkid;
+	    result[y >> 4][((y & 0xF) << 8) | (z << 4) | x] = (byte) material.getId();
 	}
 
 	@Override
@@ -309,7 +309,7 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 			for(int z=0; z<16; z++) {
 				int y = 0;
 				//This will set the floor of each chunk at bedrock level to bedrock
-				setBlock(result,x,y,z, (byte) Material.BEDROCK.getId() );
+				setBlock(result,x,y,z, Material.BEDROCK );
 				y++;
 
 				// Get lat/lon
@@ -341,31 +341,49 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				int stoneHeight = height - 16;
 
 				for(;y<stoneHeight; y++) {
-					setBlock(result,x,y,z, (byte) Material.STONE.getId() );
+					setBlock(result,x,y,z, Material.STONE);
 				}
 
-				if( height > this.sandLevel ) {
-					// Land
-					for(;y< height-1;y++) {
-						setBlock(result,x,y,z, (byte) Material.DIRT.getId() );
-					}
-					if(y<height) {
-						setBlock(result,x,y,z, (byte) Material.GRASS.getId() );
-						y++;
-					}
-
-				} else {
+				if( biome == Biome.BEACH ||
+						biome == Biome.OCEAN ||
+						biome == Biome.FROZEN_OCEAN ||
+						biome == Biome.DESERT ||
+						biome == Biome.DESERT_HILLS )
+				{
 					// Ocean or beach
 					if( y < height-1 ) {
-						setBlock(result,x,y,z, (byte) Material.SANDSTONE.getId());
+						setBlock(result,x,y,z, Material.SANDSTONE);
 						y++;
 					}
 					for(;y< height;y++) {
-						setBlock(result,x,y,z, (byte) Material.SAND.getId() );
+						setBlock(result,x,y,z, Material.SAND );
+					}
+				} else if( biome == Biome.ICE_MOUNTAINS ) {
+					// Mountain
+					for(;y< height;y++) {
+						setBlock(result,x,y,z, Material.STONE );
+					}
+
+				} else {
+					// Land
+					for(;y< height-1;y++) {
+						setBlock(result,x,y,z, Material.DIRT );
+					}
+					if(y<height) {
+						setBlock(result,x,y,z, Material.GRASS );
+						y++;
 					}
 				}
-				for(;y<seaLevel && spawnOcean ;y++) {
-					setBlock(result,x,y,z, (byte) Material.STATIONARY_WATER.getId() );
+				for(;y<seaLevel-1 && spawnOcean ;y++) {
+					setBlock(result,x,y,z, Material.STATIONARY_WATER );
+				}
+				if( y==seaLevel-1 && spawnOcean) {
+					if(biome == Biome.FROZEN_OCEAN || biome == Biome.FROZEN_RIVER) {
+						setBlock(result,x,y,z, Material.ICE );
+					} else {
+						setBlock(result,x,y,z, Material.STATIONARY_WATER );
+					}
+					y++;
 				}
 			}
 		}
