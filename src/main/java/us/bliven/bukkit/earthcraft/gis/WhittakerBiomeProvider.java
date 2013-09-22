@@ -89,7 +89,7 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 
 	protected double getTemperature(Coordinate coord) {
 		double temp = equatorTemp;
-		temp -= latitudeGradient*Math.abs(coord.x);
+		temp -= latitudeGradient*( 1-Math.cos(Math.toRadians(coord.x)) )*90;
 		temp -= lapseRate*Math.abs(coord.z);
 
 		double r = tempNoise.noise(coord.x, coord.y, .5, 1/Math.sqrt(2)); //roughtly -1 to 1
