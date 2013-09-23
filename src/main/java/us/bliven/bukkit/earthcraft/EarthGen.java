@@ -7,6 +7,7 @@ import io.github.lucariatias.bukkitpopulators.populators.GlowstoneReefPopulator;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
@@ -198,7 +199,7 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 			BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
 			if(bukkitpopulators != null) {
 				List<BlockPopulator> pops =  bukkitpopulators.getDefaultPopulators(world);
-				log.info("Read "+pops.size()+" populators from BukkitPopulators");
+				log.info("Loaded "+pops.size()+" populators from BukkitPopulators");
 				populators.addAll(pops);
 			} else {
 				log.severe("BukkitPopulators plugin not installed");
@@ -210,17 +211,49 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	private void addPopulators(World world, List<String> classNames, List<BlockPopulator> populators) {
 		ClassLoader cl = plugin.getClass().getClassLoader();
 
+		// Load bukkitPopulators if installed
+		PluginManager pm = plugin.getServer().getPluginManager();
+		BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
+
+		// Build list of known populators.
+		List<BlockPopulator> availablePopulators;
+		if(bukkitpopulators != null) {
+			availablePopulators =  bukkitpopulators.getAllPopulators(world);
+		} else {
+			availablePopulators = Arrays.asList();
+		}
+
 		// packages to search for classes, in order
 		List<String> packages = new ArrayList<String>();
 		packages.add("");
-		PluginManager pm = plugin.getServer().getPluginManager();
-		BukkitPopulators bukkitpopulators = (BukkitPopulators)pm.getPlugin("BukkitPopulators");
 		if(bukkitpopulators != null) {
 			packages.add(OrePopulator.class.getPackage().getName());
 			packages.add(GlowstoneReefPopulator.class.getPackage().getName());
 		}
 
 		for(String className: classNames) {
+
+			BlockPopulator populator = null;
+
+			// First search available populators for the className
+			for(BlockPopulator pop : availablePopulators) {
+				Class<? extends BlockPopulator> klass = pop.getClass();
+				// Match the full name case-sensitive, but ignore case for simple name
+				if( klass.getName().equals(className) ||
+						klass.getSimpleName().equalsIgnoreCase(className) ) {
+					populator = pop;
+					break;
+				}
+			}
+
+			if(populator != null) {
+				// Found instance among known populators
+				log.info("Loaded populator "+className);
+				populators.add(populator);
+				continue;
+			}
+
+			// Not found, so try to find class in known packages
 			Class<?> klass = null;
 			for(String pkg : packages) {
 				try {
@@ -238,10 +271,10 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				continue;
 			}
 
-			BlockPopulator pop;
+			// Create the instance
 			try {
 				Constructor<?> constructor = klass.getConstructor();
-				pop = (BlockPopulator) constructor.newInstance();
+				populator = (BlockPopulator) constructor.newInstance();
 			} catch (ClassCastException e) {
 				// Not a BlockPopulator
 				log.severe(className+" is not a BlockPopulator.");
@@ -268,7 +301,8 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				continue;
 			}
 
-			populators.add(pop);
+			log.info("Loaded populator "+className);
+			populators.add(populator);
 		}
 	}
 
