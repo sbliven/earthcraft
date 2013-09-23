@@ -68,5 +68,8 @@ public class InterpolatedCoverageElevationProviderTest {
 		elev = interp.fetchElevation(pos);
 		assertEquals(-65.,elev,1e-6);
 
+		pos = new Coordinate(90,0);
+		elev = interp.fetchElevation(pos);
+		assertEquals(-4233.,elev,1e-6);
 	}
 }

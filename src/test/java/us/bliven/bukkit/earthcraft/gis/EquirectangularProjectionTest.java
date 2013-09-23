@@ -77,6 +77,12 @@ public class EquirectangularProjectionTest {
 		loc = proj.coordinateToLocation(world, coord);
 		assertEquals("Wrong X",5,loc.getX(),.1);
 		assertEquals("Wrong Z",-1,loc.getZ(),.1);
+
+		// Border
+		coord = new Coordinate(90,0);
+		loc = proj.coordinateToLocation(world, coord);
+		assertEquals("Wrong X",0,loc.getX(),.1);
+		assertEquals("Wrong Z",-900,loc.getZ(),.1);
 	}
 
 	@Test
@@ -120,6 +126,11 @@ public class EquirectangularProjectionTest {
 		assertEquals("Wrong lat",-.4,coord.x,1e-5);
 		assertEquals("Wrong lon",.3,coord.y,1e-5);
 
+		// Border
+		loc = new Location(world, 0,0,-900);
+		coord = proj.locationToCoordinate(loc);
+		assertEquals("Wrong lat",90,coord.x,1e-5);
+		assertEquals("Wrong lon",0,coord.y,1e-5);
 	}
 
 	@Test

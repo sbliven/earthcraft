@@ -18,6 +18,7 @@ import static org.bukkit.block.Biome.TAIGA_HILLS;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.World;
@@ -136,18 +137,25 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		// 	dz/dx = ( (a+2d+g)-(c+2f+i) )/(8*scale.x)
 		// 	dz/dy = ( (a+2b+c)-(g+2h+i) )/(8*scale.y)
 
+		// At poles, longitude scale is undefined
+		double scalex = scale.x;
+		double scaley = Double.isInfinite(scale.y) ? scale.x : scale.y;
 		try {
-			double b = provider.fetchElevation(new Coordinate(coord.x,coord.y+scale.y));
+			double b = provider.fetchElevation(new Coordinate(coord.x,coord.y+scaley));
 			double e = coord.z;
-			double f = provider.fetchElevation(new Coordinate(coord.x+scale.x,coord.y));
+			double f = provider.fetchElevation(new Coordinate(coord.x+scalex,coord.y));
 
-			double dx = (b-e)/scale.x;
-			double dy = (f-e)/scale.y;
+			double dx = (b-e)/scalex;
+			double dy = (f-e)/scaley;
 
 			return Math.sqrt(dx*dx+dy*dy); // in m/deg
 		} catch (DataUnavailableException e) {
-			// default to infinite slope
-			return Double.POSITIVE_INFINITY;
+			// default
+			return 0;
+		} catch( Exception e) { // Eg IllegalArgumentExceptions for invalid coords
+			log.log(Level.SEVERE, "Error getting elevation near "+ProjectionTools.latlonString(coord),e);
+			log.log(Level.SEVERE, "Scale "+scalex+","+scaley,e);
+			return 0;
 		}
 	}
 
