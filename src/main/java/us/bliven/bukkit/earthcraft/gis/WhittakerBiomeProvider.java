@@ -99,10 +99,22 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		return temp;
 	}
 
-	protected double getPrecipitation(Coordinate coord, double temp) {
+	private double gaussian(double x, double mean, double sd) {
+		double a = (x-mean)/sd;
+		return Math.exp(-a*a/2);
+	}
+	protected double getPrecipitation(Coordinate coord) {
+		double lat = ProjectionTools.wrapCoordinate(coord).x;
+
+		// Use 3-gaussian approximation of precipitation
+		// Data roughly from:
+		// 	Ritter, Michael E. The Physical Environment: an Introduction to
+		//	Physical Geography. 2006.
+		//  http://www4.uwsp.edu/geo/faculty/ritter/geog101/textbook/atmospheric_moisture/global_patterns_of_precipitation.html
+		double precip =  76.2*gaussian(lat,-50,12) +
+				157.48*gaussian(lat,-8,15) + 101.60*gaussian(lat,40,15);
 		double r = precipNoise.noise(coord.x,coord.y, .5, 1/Math.sqrt(2));//roughly -1 to 1
-		double maxPrecip = 10.*temp+100;
-		double precip = (r+1)/2.*maxPrecip; // roughly 0 to maxPrecip
+		precip += r*2;
 		return Math.max(precip, 0);
 	}
 
@@ -184,7 +196,7 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		}
 
 		double temp = getTemperature(coord);
-		double precip = getPrecipitation(coord, temp);
+		double precip = getPrecipitation(coord);
 
 		Coordinate scale = gen.getMapProjection().getLocalScale(coord); // deg (for 1 block changes)
 		double slope = getSlope(coord,scale,provider); // m/deg
@@ -267,7 +279,7 @@ public class WhittakerBiomeProvider implements BiomeProvider, Configurable {
 		MapProjection mapProj = gen.getMapProjection();
 
 		double temp = getTemperature(coord);
-		double precip = getPrecipitation(coord, temp);
+		double precip = getPrecipitation(coord);
 
 		Coordinate scale = mapProj.getLocalScale(coord); // deg (for 1 block changes)
 		double slope = getSlope(coord,scale,provider); // m/deg
