@@ -28,7 +28,8 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 public class ElevationGrid {
 	public static void main(String[] a) {
-		ElevationProvider elevationProvider, elevationCache;
+//		ElevationProvider elevationProvider;
+		ElevationProvider elevationCache;
 //		double south = 32.73;
 //		double west = -117.26;
 //		double north = 32.80;

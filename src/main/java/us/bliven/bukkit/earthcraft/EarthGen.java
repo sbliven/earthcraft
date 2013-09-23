@@ -54,7 +54,6 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	private final int defaultBlockHeight = 1;
 
 	private int seaLevel; // 1st block above water
-	private int sandLevel; // 1st block above the beach
 
 	private boolean spawnOcean;
 
@@ -95,7 +94,6 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 		}
 
 		this.seaLevel = NumberConversions.floor(elevationProjection.elevationToY(0.));
-		this.sandLevel = NumberConversions.floor(elevationProjection.elevationToY(2.));
 
 		this.spawnOcean = true;
 	}
@@ -291,6 +289,7 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 	/**
 	 * helper function for generate
 	 */
+	@SuppressWarnings("deprecation")
 	private void setBlock(byte[][] result, int x, int y, int z, Material material) {
 	    if (result[y >> 4] == null) {
 	        result[y >> 4] = new byte[4096];
