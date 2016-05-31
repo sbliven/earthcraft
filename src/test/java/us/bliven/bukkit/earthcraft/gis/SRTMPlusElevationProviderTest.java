@@ -13,6 +13,7 @@ import java.util.List;
 import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.gce.gtopo30.GTopo30Reader;
 import org.geotools.geometry.DirectPosition2D;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,8 +63,13 @@ public class SRTMPlusElevationProviderTest {
 		 * It wraps around to 1,0 (cell 4800) in the northwest
 		 * It ends at 4799,5999 in the southeast
 		 */
-		GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
+		//GridCoverage2D grid = srtm.loadGrid(new Coordinate(34,-117));
 
+		File file = new File("/Users/blivens/dev/minecraft/srtm/w140n40.Bathymetry.srtm.dem");
+		GTopo30Reader reader = new GTopo30Reader( file );
+		GridCoverage2D grid = reader.read(null);
+
+			
 		GridCoordinates2D pos;
 		pos = new GridCoordinates2D(0,0);
 		assertEquals(-4338,grid.evaluate(pos,(int[])null)[0]);

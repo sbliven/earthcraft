@@ -13,7 +13,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<geotools.version>9.5</geotools.version>
+		<geotools.version>8.4</geotools.version>
 		<maven.jar.manifest.classpath.add>true</maven.jar.manifest.classpath.add>
 	</properties>
 
@@ -60,7 +60,7 @@
 			<artifactId>gt-gtopo30</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
-		<dependency>
+<!-- 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-shapefile</artifactId>
 			<version>${geotools.version}</version>
@@ -89,7 +89,7 @@
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-wms</artifactId>
 			<version>${geotools.version}</version>
-		</dependency>
+		</dependency> -->
 	</dependencies>
 
 	<repositories>
