@@ -1,8 +1,8 @@
 package us.bliven.bukkit.earthcraft;
 
 import io.github.lucariatias.bukkitpopulators.BukkitPopulators;
+import io.github.lucariatias.bukkitpopulators.GlowstoneReefPopulator;
 import io.github.lucariatias.bukkitpopulators.OrePopulator;
-import io.github.lucariatias.bukkitpopulators.populators.GlowstoneReefPopulator;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -300,7 +300,7 @@ public class EarthGen extends ChunkGenerator implements Configurable {
 				log.log(Level.SEVERE, "Exception while creating "+className,e);
 				continue;
 			}
-
+			
 			log.info("Loaded populator "+className);
 			populators.add(populator);
 		}

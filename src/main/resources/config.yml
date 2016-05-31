@@ -73,10 +73,11 @@ worlds:
         WhittakerBiomeProvider: {}
       # Use standard named populator sets
       populatorSet: Bare
-      populatorSet: BukkitPopulators
+      #populatorSet: BukkitPopulators
       # Load additional custom populators by name
-      #populators:
-      #- GlowstoneReefPopulator
+      # To load populators from external plugins use the fully qualified class name.
+      populators:
+      - GlowstoneReefPopulator
 
 
     # Should we spawn water? (Useful when debugging bathymetry)
