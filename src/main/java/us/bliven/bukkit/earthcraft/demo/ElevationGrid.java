@@ -34,12 +34,17 @@ public class ElevationGrid {
 //		double west = -117.26;
 //		double north = 32.80;
 //		double east = -117.20;
-		double south = 32.65;
-		double west = -117.25;
-		double north = 32.75;
-		double east = -117.15;
+//		double south = 32.65;
+//		double west = -117.25;
+//		double north = 32.75;
+//		double east = -117.15;
+		//hawaii
+		double south = 18.5;
+		double west = -161.0;
+		double north = 22.75;
+		double east = -154.5;
 		Unit<Length> degLat = NonSI.NAUTICAL_MILE.times(60); //Nautical_mile = 1 arcminute
-		double latRes = Measure.valueOf(30.0, SI.METER).doubleValue(degLat);
+		double latRes = Measure.valueOf(30.0*100, SI.METER).doubleValue(degLat);
 		double lonRes = latRes;
 		System.out.format("Area %f deg^2 at %f res = %d points%n",
 				(north-south)*(east-west), latRes,
@@ -132,32 +137,14 @@ public class ElevationGrid {
 				else {
 					//pixels[i] = pixels[i+1] = pixels[i+2] = elevations[x][y].intValue();
 
-					// Below 0 is blue
-					if(elevations[y][x] < -50) {
-						pixels[i] = 0;
-						pixels[i+1] = 0;
-						pixels[i+2] = 0x33;
-					} else if( elevations[y][x] < 0) {
-						// Interpolate between blue (0x0000ff)
-						// and dark blue 0x000033 at -50
-						double a = -elevations[y][x]/50.;
-						pixels[i] = 0;
-						pixels[i+1] = 0;
-						pixels[i+2] = (int) (a*0xff + (1-a)*0x33);
-					} else if( elevations[y][x] <1 ) {
-						// Sandy beach
-						pixels[i] = 220;
-						pixels[i+1] = 220;
-						pixels[i+2] = 16;
-					} else {
-						// Interpolate between green (0x00ff00)
-						// and brown 0x804000
-						int v = elevations[y][x].intValue();
-						if(v>255) v=255;
-						pixels[i] = v/2;
-						pixels[i+1] = 255-3*v/4;
-						pixels[i+2] = 0;
-					}
+//					int color = getSeaLevelColor(elevations[y][x]);
+					int color = getColor(elevations[y][x], new int[] {-5000,0,0,4000,},
+							new int[] {0x000033, 0x0000FF, 0x305A29, 0xFFFFFF,} );
+
+					pixels[i] = (color & 0xFF0000) >> 16;
+					pixels[i+1] = (color & 0x00FF00) >> 8;
+					pixels[i+2] = (color & 0x0000FF);
+					
 				}
 
 				// 10px white scale bar at top left
@@ -198,6 +185,84 @@ public class ElevationGrid {
 		WritableRaster raster = image.getRaster();
 		raster.setPixels(0, 0, width, height, pixels);
 		return image;
+	}
+
+	/**
+	 * Gets the color for an elevation by interpolating between a list of
+	 * reference points. For instance, a red-white-blue gradient could be defined with
+	 * <tt>getColor(x, {-10,0,10}, {0xFF0000, 0xFFFFFF, 0x0000FF} )</tt>
+	 * 
+	 * Points may be duplicated to establish a sharp boundary between segments.
+	 * @param elevation
+	 * @param refPoints A sorted list of reference points. 
+	 * @param refColors A corresponding list of rgb  colors for each refPoint
+	 * @return
+	 */
+	private static int getColor(Double x, int[] refPoints, int[] refColors) {
+		if( refPoints.length == 0 || refPoints.length != refColors.length) {
+			throw new IllegalArgumentException("Invalid reference arrays");
+		}
+		
+		// Don't extrapolate outside bounds
+		if( x <= refPoints[0]) {
+			return refColors[0];
+		}
+		if( refPoints[ refPoints.length-1] <= x) {
+			return refColors[ refPoints.length-1 ];
+		}
+		
+		// Interpolate between points
+
+		// find index such that x<refPoints[pos]
+		int pos = 1;
+		while( refPoints[pos] <= x) {
+			pos++;
+		}
+		
+		double alpha = 1 - (x - refPoints[pos-1])/(refPoints[pos]-refPoints[pos-1]); //interpolation factor
+		
+		int leftR = (refColors[pos-1] & 0xFF0000) >> 16;
+		int leftG = (refColors[pos-1] & 0x00FF00) >> 8;
+		int leftB = (refColors[pos-1] & 0x0000FF);
+		int rightR = (refColors[pos] & 0xFF0000) >> 16;
+		int rightG = (refColors[pos] & 0x00FF00) >> 8;
+		int rightB = (refColors[pos] & 0x0000FF);
+		
+		int r = (int)(leftR*alpha + rightR*(1-alpha));
+		int g = (int)(leftG*alpha + rightG*(1-alpha));
+		int b = (int)(leftB*alpha + rightB*(1-alpha));
+		
+		int color = (r << 16) | (g << 8) | b;
+		return color;
+	}
+	
+	private static int getSeaLevelColor(Double x) {
+		return getColor(x, new int[] {-50,0,0,1,1,255},
+				new int[] {0x000033, 0x0000FF, 0xDCDC10, 0xDCDC10, 0x00ff00, 0x804000} );
+	
+//		// Below 0 is blue
+//		if(x < -50) {
+//			return 0x000033;
+//		} else if( x < 0) {
+//			// Interpolate between blue (0x0000ff)
+//			// and dark blue 0x000033 at -50
+//			double a = -x/50.;
+//			return (int) (a*0xff + (1-a)*0x33);
+//		} else if( x <1 ) {
+//			// Sandy beach
+//			return 0xDCDC10;
+//		} else {
+//			// Interpolate between green (0x00ff00)
+//			// and brown 0x804000
+//			int v = x.intValue();
+//			if(v>255)
+//				v=255;
+//			int c = v/2;
+//			c <<= 8;
+//			c |= 255-3*v/4;
+//			c <<= 8;
+//			return c;
+//		}
 	}
 
 	/**
