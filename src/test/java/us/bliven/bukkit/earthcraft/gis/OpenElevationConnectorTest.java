@@ -17,7 +17,8 @@ public class OpenElevationConnectorTest {
 	OpenElevationConnector oec;
 	@Before
 	public void setup() {
-		oec = new OpenElevationConnector();
+		String authKey = "YOUR_KEY_HERE";
+		oec = new OpenElevationConnector(authKey);
 		
 		latlong = new ArrayList<Coordinate>();
 		elevations = new ArrayList<Double>();

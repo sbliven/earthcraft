@@ -21,6 +21,12 @@ To fetch dependencies and build the jar, execute
 
 This will produce the jar in target/earthcraft-<VERSION>.jar
 
+Data Sources
+------------
+
+**MapQuest**The OpenElevationConnector requires a MapQuest API key. You can
+register for one for free at https://developer.mapquest.com/.
+
 License
 -------
 

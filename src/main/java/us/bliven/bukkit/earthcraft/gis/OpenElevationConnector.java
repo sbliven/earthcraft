@@ -43,7 +43,9 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 	public static final String USERAGENT = "SBGen v0.1";
 
 	private int requestsMade = 0; //Number of API calls made by this instance
-
+	
+	private String authKey;
+	
 	// Infrastructure for regular updates
 	private OpenElevationMonitor monitor;
 	private ScheduledExecutorService executor;
@@ -51,7 +53,12 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 
 	private final Logger log;
 
-	public OpenElevationConnector() {
+	public OpenElevationConnector(String authKey) {
+		if( authKey.length() != 32) {
+			throw new IllegalArgumentException("Invalid MapQuest API consumer key."
+					+ " Keys can be obtained from http://developer.mapquest.com");
+		}
+		this.authKey = authKey;
 		monitor = new OpenElevationMonitor();
 		executor = null;
 		monitorHandle = null;
@@ -81,6 +88,9 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 		final String baseURL = "http://open.mapquestapi.com/elevation/v1/profile?";
 		final String params = "inShapeFormat=raw&outShapeFormat=none&outFormat=xml&latLngCollection=";
 		StringBuilder uri = new StringBuilder(baseURL);
+		uri.append("key=");
+		uri.append(authKey);
+		uri.append("&");
 		uri.append(params);
 		for(Coordinate p : l) {
 			uri.append(p.x); // actually lat
@@ -238,7 +248,9 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 	};
 	public static void main(String[] a) {
 		try {
-			URL url = new URL("http://open.mapquestapi.com/elevation/v1/profile?inShapeFormat=raw&latLngCollection=32.839825,-117.244669&outShapeFormat=none&outFormat=xml");
+			String authKey = "YOUR_KEY_HERE";
+
+			URL url = new URL("http://open.mapquestapi.com/elevation/v1/profile?key="+authKey+"&inShapeFormat=raw&latLngCollection=32.839825,-117.244669&outShapeFormat=none&outFormat=xml");
 
 			DefaultHandler handler = new DefaultHandler() {
 				@Override
@@ -248,7 +260,7 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 				}
 			};
 
-			OpenElevationConnector oec = new OpenElevationConnector();
+			OpenElevationConnector oec = new OpenElevationConnector(authKey);
 			oec.handleRestRequest(url, handler);
 		} catch (Exception e) {
 			e.printStackTrace();
