@@ -1,13 +1,12 @@
 package us.bliven.bukkit.earthcraft.gis;
 
-import org.bukkit.World;
-import org.bukkit.block.Biome;
-
+import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
 import us.bliven.bukkit.earthcraft.EarthGen;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-public interface BiomeProvider {
+public interface CoordBiomeProvider {
 	/**
 	 * Get the biome at a particular location
 	 * @param gen The generator for this world
@@ -15,5 +14,5 @@ public interface BiomeProvider {
 	 * @param coord Location to get biomes
 	 * @return The Biome type
 	 */
-	public Biome getBiome(EarthGen gen, World world, Coordinate coord);
+	public BiomeGenBase getBiome(EarthGen gen, World world, Coordinate coord);
 }

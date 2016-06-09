@@ -10,14 +10,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.util.LRULinkedHashMap;
 import org.opengis.geometry.DirectPosition;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -26,7 +22,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  * @author Spencer Bliven
  */
 public abstract class GridCoverageElevationProvider extends AbstractElevationProvider
-implements Configurable {
+{//implements Configurable {
 
 	//Number of tiles to store in memory simultaneously
 	private static final int GRID_CACHE_SIZE = 32; // Decrease to reduce memory use
@@ -56,18 +52,18 @@ implements Configurable {
 		this.log = Logger.getLogger(this.getClass().getName());
 	}
 
-	/**
-	 * Handles the 'wrap' parameter.
-	 * Unrecognized parameters are ignored.
-	 */
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("wrap") ) {
-				wrap = params.getBoolean(param,wrap);
-			}
-		}
-	}
+//	/**
+//	 * Handles the 'wrap' parameter.
+//	 * Unrecognized parameters are ignored.
+//	 */
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("wrap") ) {
+//				wrap = params.getBoolean(param,wrap);
+//			}
+//		}
+//	}
 
 	public synchronized GridCoverage2D loadGrid(Coordinate coord) throws DataUnavailableException {
 		// Get the tile prefix, eg 'w140n40'

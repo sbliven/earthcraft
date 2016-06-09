@@ -5,18 +5,14 @@ import java.util.concurrent.Callable;
 import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationBicubic;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.Interpolator2D;
 import org.opengis.coverage.PointOutsideCoverageException;
 
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
-
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class InterpolatedCoverageElevationProvider
-extends GridCoverageElevationProvider implements Configurable {
+extends GridCoverageElevationProvider {// implements Configurable {
 
 	private GridCoverageElevationProvider provider;
 	private Interpolation interpolation;
@@ -38,27 +34,27 @@ extends GridCoverageElevationProvider implements Configurable {
 		this(null);
 	}
 
-	public InterpolatedCoverageElevationProvider(ConfigManager config, ConfigurationSection params) {
-		this();
-		initFromConfig(config, params);
-	}
-
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		super.initFromConfig(config, params);
-
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("provider") ) {
-				provider = config.createSingleConfigurable(GridCoverageElevationProvider.class,
-						params.getConfigurationSection(param), provider);
-			} else {
-				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-			}
-		}
-		if( provider == null) {
-			provider = new SRTMPlusElevationProvider();
-		}
-	}
+//	public InterpolatedCoverageElevationProvider(ConfigManager config, ConfigurationSection params) {
+//		this();
+//		initFromConfig(config, params);
+//	}
+//
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		super.initFromConfig(config, params);
+//
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("provider") ) {
+//				provider = config.createSingleConfigurable(GridCoverageElevationProvider.class,
+//						params.getConfigurationSection(param), provider);
+//			} else {
+//				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//			}
+//		}
+//		if( provider == null) {
+//			provider = new SRTMPlusElevationProvider();
+//		}
+//	}
 
 	@Override
 	protected String getTileName(Coordinate coord) {

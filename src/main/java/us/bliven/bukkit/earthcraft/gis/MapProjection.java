@@ -1,7 +1,6 @@
 package us.bliven.bukkit.earthcraft.gis;
 
-import org.bukkit.Location;
-import org.bukkit.World;
+import net.minecraft.world.World;
 
 import com.vividsolutions.jts.geom.Coordinate;
 

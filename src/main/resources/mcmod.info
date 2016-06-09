@@ -1,14 +1,14 @@
 [
 {
-  "modid": "examplemod",
-  "name": "Example Mod",
-  "description": "Example placeholder mod.",
+  "modid": "earthcraft",
+  "name": "Earthcraft",
+  "description": "Explore the real world in Minecraft. Mine the Rocky Mountains. Summit Mt. Everest. Build your home town in all its cuby goodness.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
+  "authorList": ["Spencer Bliven"],
+  "credits": "Geographic data provided by SRTMPlus and the Open Elevation Project. Processed using GeoTools.",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []

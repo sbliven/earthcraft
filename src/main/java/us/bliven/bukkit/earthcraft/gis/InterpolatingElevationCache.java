@@ -8,10 +8,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.apache.commons.collections15.map.LRUMap;
-import org.bukkit.configuration.ConfigurationSection;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
 
 import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -25,7 +21,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  *  2. Pre-fetching nearby grid points
  * @author Spencer Bliven
  */
-public class InterpolatingElevationCache implements ElevationProvider, Configurable {
+public class InterpolatingElevationCache implements ElevationProvider{//, Configurable {
 	private static final int MAX_ELEVATIONS_PER_SUBREQUEST = 36;
 	private static final int MAX_CACHE_SIZE = 1024;
 	private static final int MAX_PREFETCH_SIZE = 512;
@@ -36,7 +32,7 @@ public class InterpolatingElevationCache implements ElevationProvider, Configura
 	private Lattice lattice;
 	private LRUMap<Point,Double> cache;
 
-	private Logger log;
+	private static final Logger log = Logger.getLogger(InterpolatingElevationCache.class.getName());;
 
 	public InterpolatingElevationCache(ElevationProvider provider, Coordinate origin, Coordinate gridScale) {
 		lattice = new Lattice(origin, gridScale);
@@ -45,7 +41,7 @@ public class InterpolatingElevationCache implements ElevationProvider, Configura
 		cache = new LRUMap<Point,Double>(MAX_CACHE_SIZE);
 		prefetchStack = new LRUMap<Point, Object>(MAX_PREFETCH_SIZE);
 
-		log = Logger.getLogger(getClass().getName());
+		
 	}
 	public InterpolatingElevationCache(ElevationProvider provider, Coordinate gridScale) {
 		this(provider, new Coordinate(0.,0.),gridScale);
@@ -54,22 +50,22 @@ public class InterpolatingElevationCache implements ElevationProvider, Configura
 		this(null,new Coordinate(1.,1.));
 	}
 
-	public InterpolatingElevationCache(ConfigManager config, ConfigurationSection params) {
-		this();
-		initFromConfig(config, params);
-	}
-
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("provider") ) {
-				provider = config.createSingleConfigurable(ElevationProvider.class,
-						params.getConfigurationSection(param), provider);
-			} else {
-				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-			}
-		}
-	}
+//	public InterpolatingElevationCache(ConfigManager config, ConfigurationSection params) {
+//		this();
+//		initFromConfig(config, params);
+//	}
+//
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("provider") ) {
+//				provider = config.createSingleConfigurable(ElevationProvider.class,
+//						params.getConfigurationSection(param), provider);
+//			} else {
+//				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//			}
+//		}
+//	}
 
 	@Override
 	public Double fetchElevation(Coordinate query) throws DataUnavailableException{

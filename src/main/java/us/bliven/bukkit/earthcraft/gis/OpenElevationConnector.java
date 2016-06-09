@@ -17,14 +17,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
 
 import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -38,7 +34,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  * @author Spencer Bliven
  *
  */
-public class OpenElevationConnector implements ElevationProvider, Configurable {
+public class OpenElevationConnector implements ElevationProvider {//, Configurable {
 
 	public static final String USERAGENT = "SBGen v0.1";
 
@@ -64,13 +60,13 @@ public class OpenElevationConnector implements ElevationProvider, Configurable {
 		monitorHandle = null;
 		log = Logger.getLogger(getClass().getName());
 	}
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		// No options currently
-		for(String param : params.getKeys(false)) {
-			log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-		}
-	}
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		// No options currently
+//		for(String param : params.getKeys(false)) {
+//			log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//		}
+//	}
 	@Override
 	public Double fetchElevation(Coordinate query) throws DataUnavailableException{
 		List<Double> q = fetchElevations(Lists.asList(query,new Coordinate[0]));

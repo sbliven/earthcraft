@@ -7,7 +7,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.Callable;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -18,8 +17,6 @@ import org.opengis.geometry.DirectPosition;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.operation.TransformException;
 
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
 import us.bliven.bukkit.earthcraft.util.FileCache;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -29,7 +26,7 @@ import com.vividsolutions.jts.geom.Coordinate;
  * @author Spencer Bliven
  */
 public class SRTMPlusElevationProvider extends GridCoverageElevationProvider
-implements Configurable {
+{//implements Configurable {
 
 	//SMTP Plus FTP server
 	private static final String SMTP_PLUS_SERVER = "ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/";
@@ -52,28 +49,28 @@ implements Configurable {
 		this.cache = new FileCache(dir,getExecutor());
 	}
 
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		super.initFromConfig(config, params);
-
-		// Default: <plugin>/cache/srtm/
-		File defaultCacheDir = new File(config.getPlugin().getDataFolder(),"cache");
-		defaultCacheDir = new File(defaultCacheDir,"srtm");
-		String dir = defaultCacheDir.getPath();
-
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("cache") ) {
-				dir = params.getString(param);
-			} else if( param.equalsIgnoreCase("wrap") ) {
-				// handled by super
-			} else {
-				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-			}
-		}
-
-		if( dir != cache.getDir() )
-			cache = new FileCache(dir,getExecutor());
-	}
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		super.initFromConfig(config, params);
+//
+//		// Default: <plugin>/cache/srtm/
+//		File defaultCacheDir = new File(config.getPlugin().getDataFolder(),"cache");
+//		defaultCacheDir = new File(defaultCacheDir,"srtm");
+//		String dir = defaultCacheDir.getPath();
+//
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("cache") ) {
+//				dir = params.getString(param);
+//			} else if( param.equalsIgnoreCase("wrap") ) {
+//				// handled by super
+//			} else {
+//				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//			}
+//		}
+//
+//		if( dir != cache.getDir() )
+//			cache = new FileCache(dir,getExecutor());
+//	}
 
 	private synchronized void createHDR(String filename,Envelope bounds) {
 		/*

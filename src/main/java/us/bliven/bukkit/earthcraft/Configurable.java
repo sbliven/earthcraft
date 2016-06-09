@@ -1,6 +1,5 @@
 package us.bliven.bukkit.earthcraft;
 
-import org.bukkit.configuration.ConfigurationSection;
 
 
 /**
@@ -11,6 +10,6 @@ import org.bukkit.configuration.ConfigurationSection;
  */
 public interface Configurable {
 
-	public void initFromConfig(ConfigManager config, ConfigurationSection params);
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params);
 
 }

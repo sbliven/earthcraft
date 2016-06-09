@@ -2,13 +2,9 @@ package us.bliven.bukkit.earthcraft.gis;
 
 import java.util.logging.Logger;
 
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.block.Biome;
-import org.bukkit.configuration.ConfigurationSection;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
+import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.biome.BiomeProvider;
 import us.bliven.bukkit.earthcraft.EarthGen;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -18,25 +14,22 @@ import com.vividsolutions.jts.geom.Coordinate;
  * minecraft Biome
  * @author Spencer Bliven
  */
-public class DefaultBiomeProvider implements BiomeProvider,Configurable {
+public class DefaultBiomeProvider implements CoordBiomeProvider {//,Configurable {
 
-	private Logger log;
+	private static final Logger log = Logger.getLogger(DefaultBiomeProvider.class.getName());;
+	private BiomeProvider provider;
 	public DefaultBiomeProvider() {
-		log = Logger.getLogger(getClass().getName());
+		provider = null;
 	}
 
 	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		for(String param : params.getKeys(false)) {
-			log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+	public BiomeGenBase getBiome(EarthGen gen, World world, Coordinate coord) {
+		if(provider == null) {
+			provider = new BiomeProvider(world.getWorldInfo());
 		}
-	}
-
-	@Override
-	public Biome getBiome(EarthGen gen, World world, Coordinate coord) {
 		// Do nothing; use the default biome
 		Location loc = gen.getMapProjection().coordinateToLocation(world, coord);
-		return world.getBiome(loc.getBlockX(),loc.getBlockZ());
+		return provider.getBiomeGenerator(loc);
 	}
 
 }

@@ -5,17 +5,12 @@ package us.bliven.bukkit.earthcraft.gis;
 
 import java.util.logging.Logger;
 
-import org.bukkit.configuration.ConfigurationSection;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
-
 import com.vividsolutions.jts.geom.Coordinate;
 
 /**
  * @author Spencer Bliven
  */
-public class FlatElevationProvider extends AbstractElevationProvider implements Configurable {
+public class FlatElevationProvider extends AbstractElevationProvider {// implements Configurable {
 	private double elevation;
 
 	private Logger log;
@@ -26,20 +21,20 @@ public class FlatElevationProvider extends AbstractElevationProvider implements 
 		this.elevation = elevation;
 		log = Logger.getLogger(getClass().getName());
 	}
-	public FlatElevationProvider(ConfigManager config, ConfigurationSection params) {
-		this();
-		initFromConfig(config, params);
-	}
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("elev") ) {
-				elevation = params.getDouble(param,elevation);
-			} else {
-				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-			}
-		}
-	}
+//	public FlatElevationProvider(ConfigManager config, ConfigurationSection params) {
+//		this();
+//		initFromConfig(config, params);
+//	}
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("elev") ) {
+//				elevation = params.getDouble(param,elevation);
+//			} else {
+//				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//			}
+//		}
+//	}
 
 	/**
 	 * Always return the same elevation

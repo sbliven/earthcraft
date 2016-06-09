@@ -4,13 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import com.vividsolutions.jts.geom.Coordinate;
-
-import us.bliven.bukkit.earthcraft.ConfigManager;
-import us.bliven.bukkit.earthcraft.Configurable;
-import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 
 /**
  * A test-pattern elevation provider
@@ -21,7 +15,7 @@ import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
  *
  * @author Spencer Bliven
  */
-public class TestElevationProvider implements ElevationProvider,Configurable {
+public class TestElevationProvider implements ElevationProvider{//,Configurable {
 
 	private double south;
 	private double north;
@@ -51,29 +45,29 @@ public class TestElevationProvider implements ElevationProvider,Configurable {
 		this(0.,1.,0.,1.,-64.,64);
 	}
 
-	@Override
-	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
-		// Required parameters
-		north = south = east = west = Double.NaN;
-
-		for(String param : params.getKeys(false)) {
-			if( param.equalsIgnoreCase("south") ) {
-				south = params.getDouble(param,south);
-			} else if( param.equalsIgnoreCase("north") ) {
-				north = params.getDouble(param,north);
-			} else if( param.equalsIgnoreCase("east") ) {
-				east = params.getDouble(param,east);
-			} else if( param.equalsIgnoreCase("west") ) {
-				west = params.getDouble(param,west);
-			} else if( param.equalsIgnoreCase("min") ) {
-				minElev = params.getDouble(param,minElev);
-			} else if( param.equalsIgnoreCase("max") ) {
-				maxElev = params.getDouble(param,maxElev);
-			} else {
-				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
-			}
-		}
-	}
+//	@Override
+//	public void initFromConfig(ConfigManager config, ConfigurationSection params) {
+//		// Required parameters
+//		north = south = east = west = Double.NaN;
+//
+//		for(String param : params.getKeys(false)) {
+//			if( param.equalsIgnoreCase("south") ) {
+//				south = params.getDouble(param,south);
+//			} else if( param.equalsIgnoreCase("north") ) {
+//				north = params.getDouble(param,north);
+//			} else if( param.equalsIgnoreCase("east") ) {
+//				east = params.getDouble(param,east);
+//			} else if( param.equalsIgnoreCase("west") ) {
+//				west = params.getDouble(param,west);
+//			} else if( param.equalsIgnoreCase("min") ) {
+//				minElev = params.getDouble(param,minElev);
+//			} else if( param.equalsIgnoreCase("max") ) {
+//				maxElev = params.getDouble(param,maxElev);
+//			} else {
+//				log.severe("Unrecognized "+getClass().getSimpleName()+" configuration option '"+param+"'");
+//			}
+//		}
+//	}
 
 
 	@Override
