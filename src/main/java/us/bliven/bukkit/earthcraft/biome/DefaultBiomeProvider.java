@@ -1,11 +1,12 @@
-package us.bliven.bukkit.earthcraft.gis;
+package us.bliven.bukkit.earthcraft.biome;
 
 import java.util.logging.Logger;
 
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.biome.BiomeProvider;
-import us.bliven.bukkit.earthcraft.EarthGen;
+import us.bliven.bukkit.earthcraft.gis.Location;
+import us.bliven.bukkit.earthcraft.worldgen.EarthChunkProvider;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -23,7 +24,7 @@ public class DefaultBiomeProvider implements CoordBiomeProvider {//,Configurable
 	}
 
 	@Override
-	public BiomeGenBase getBiome(EarthGen gen, World world, Coordinate coord) {
+	public BiomeGenBase getBiome(EarthChunkProvider gen, World world, Coordinate coord) {
 		if(provider == null) {
 			provider = new BiomeProvider(world.getWorldInfo());
 		}

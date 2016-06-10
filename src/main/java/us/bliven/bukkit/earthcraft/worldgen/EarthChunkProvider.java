@@ -1,17 +1,22 @@
-package us.bliven.bukkit.earthcraft;
+package us.bliven.bukkit.earthcraft.worldgen;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.ChunkProviderOverworld;
-import us.bliven.bukkit.earthcraft.gis.CoordBiomeProvider;
+import us.bliven.bukkit.earthcraft.EarthcraftMod;
+import us.bliven.bukkit.earthcraft.biome.CoordBiomeProvider;
 import us.bliven.bukkit.earthcraft.gis.DataUnavailableException;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 import us.bliven.bukkit.earthcraft.gis.ElevationProvider;
 import us.bliven.bukkit.earthcraft.gis.Location;
 import us.bliven.bukkit.earthcraft.gis.MapProjection;
+import us.bliven.bukkit.earthcraft.gis.ProjectionTools;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -19,7 +24,9 @@ import com.vividsolutions.jts.geom.Coordinate;
  * Generates real-world maps
  * @author Spencer Bliven
  */
-public class EarthGen extends ChunkProviderOverworld {// implements Configurable {
+public class EarthChunkProvider extends ChunkProviderOverworld {// implements Configurable {
+	private static final double WORLD_HEIGHT = 256; //TODO parameterize?
+
 	Logger log;
 
 	private MapProjection mapProjection;
@@ -35,14 +42,14 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 
 	private boolean spawnOcean;
 
-	private EarthcraftPlugin plugin;
+	private EarthcraftMod plugin;
 
 
 	// Store populator names at init for later instantiation
 	private String populatorSet;
 	private List<String> populatorNames;
 
-	public EarthGen(EarthcraftPlugin plugin, World world, long seed,
+	public EarthChunkProvider(EarthcraftMod plugin, World world, long seed,
 			boolean mapFeaturesEnabledIn, String settingsJson,
 			MapProjection mapProjection,
 			ElevationProjection elevProjection, ElevationProvider elevation,
@@ -70,7 +77,7 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 			this.log = plugin.getLogger();
 		}
 		if(this.log == null) {
-			this.log = Logger.getLogger(EarthGen.class.getName());
+			this.log = Logger.getLogger(EarthChunkProvider.class.getName());
 		}
 
 		this.seaLevel = (int) Math.floor(elevationProjection.elevationToY(0.));
@@ -298,7 +305,7 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 //			return false;
 //		return true;
 //	}
-
+	
 //	/**
 //	 * helper function for generate
 //	 */
@@ -310,6 +317,8 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 //	    result[y >> 4][((y & 0xF) << 8) | (z << 4) | x] = (byte) material.getId();
 //	}
 
+	@Override
+	public void setBlocksInChunk(int cx, int cz, ChunkPrimer primer) {
 //	@Override
 //	@Deprecated
 //	public byte[][] generateBlockSections(World world, Random random, int chunkx,
@@ -317,44 +326,44 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 //		byte[][] result = new byte[16][];
 //
 //
-//		for(int x=0; x<16; x++){
-//			for(int z=0; z<16; z++) {
-//				int y = 0;
-//				//This will set the floor of each chunk at bedrock level to bedrock
-//				setBlock(result,x,y,z, Material.BEDROCK );
-//				y++;
-//
-//				// Get lat/lon
-//				int worldx = chunkx*16+x;
-//				int worldz = chunkz*16+z;
-//				Coordinate coord = getLatLon(world, worldx, worldz );
-//
-//				// Get elevation
-//				int height;
-//				try {
-//					height = getBlockHeight(world,coord);
-//				} catch (DataUnavailableException e) {
-//					// Severe but expected exception
-//					log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
-//					height = defaultBlockHeight;
-//				} catch (Exception e) {
-//					// Unexpected exception; indicates a bug
-//					log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
-//							worldx+","+worldz +
-//							" (" + ProjectionTools.latlonString(coord) + ")", e);
-//					height = defaultBlockHeight;
-//				}
+		for(int lx=0; lx<16; lx++){
+			for(int lz=0; lz<16; lz++) {
+				int y = 0;
+				//This will set the floor of each chunk at bedrock level to bedrock
+				primer.setBlockState(lx,y,lz, Blocks.bedrock.getDefaultState());
+				y++;
+
+				// Get lat/lon
+				int worldx = cx*16+lx;
+				int worldz = cz*16+lz;
+				Coordinate coord = getLatLon( worldx, worldz );
+
+				// Get elevation
+				int height;
+				try {
+					height = getBlockHeight(coord);
+				} catch (DataUnavailableException e) {
+					// Severe but expected exception
+					log.log(Level.SEVERE,"Data unavailable at "+worldx+","+worldz,e);
+					height = defaultBlockHeight;
+				} catch (Exception e) {
+					// Unexpected exception; indicates a bug
+					log.log(Level.SEVERE,"[Bug] Unexpected error fetching height at " +
+							worldx+","+worldz +
+							" (" + ProjectionTools.latlonString(coord) + ")", e);
+					height = defaultBlockHeight;
+				}
 //
 //				// Set the biome
 //				Biome biome = biomeProvider.getBiome(this, world, coord);
 //				biomes.setBiome(x, z, biome);
 //
 //
-//				int stoneHeight = height - 16;
-//
-//				for(;y<stoneHeight; y++) {
-//					setBlock(result,x,y,z, Material.STONE);
-//				}
+				int stoneHeight = height - 16;
+
+				for(;y<stoneHeight; y++) {
+					primer.setBlockState(lx,y,lz, Blocks.stone.getDefaultState());
+				}
 //
 //				if( biome == Biome.BEACH ||
 //						biome == Biome.OCEAN ||
@@ -377,33 +386,32 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 //					}
 //
 //				} else {
-//					// Land
-//					for(;y< height-1;y++) {
-//						setBlock(result,x,y,z, Material.DIRT );
-//					}
-//					if(y<height) {
-//						setBlock(result,x,y,z, Material.GRASS );
-//						y++;
-//					}
+					// Land
+					for(;y< height-1;y++) {
+						primer.setBlockState(lx,y,lz, Blocks.dirt.getDefaultState() );
+					}
+					if(y<height) {
+						primer.setBlockState(lx,y,lz, Blocks.grass.getDefaultState() );
+						y++;
+					}
 //				}
-//				for(;y<seaLevel-1 && spawnOcean ;y++) {
-//					setBlock(result,x,y,z, Material.STATIONARY_WATER );
-//				}
-//				if( y==seaLevel-1 && spawnOcean) {
+				for(;y<seaLevel-1 && spawnOcean ;y++) {
+					primer.setBlockState(lx,y,lz, Blocks.water.getDefaultState() );
+				}
+				if( y==seaLevel-1 && spawnOcean) {
 //					if(biome == Biome.FROZEN_OCEAN || biome == Biome.FROZEN_RIVER) {
 //						setBlock(result,x,y,z, Material.ICE );
 //					} else {
-//						setBlock(result,x,y,z, Material.STATIONARY_WATER );
+						primer.setBlockState(lx,y,lz, Blocks.water.getDefaultState() );
 //					}
-//					y++;
-//				}
-//			}
-//		}
-//		return result;
-//	}
+					y++;
+				}
+			}
+		}
+	}
 
-	protected Coordinate getLatLon(World world, int worldx, int worldz) {
-		Location root = new Location(world,worldx,0,worldz);
+	protected Coordinate getLatLon( int worldx, int worldz) {
+		Location root = new Location(null,worldx,0,worldz);
 		// Translate x/z to lat/lon
 		Coordinate coord = mapProjection.locationToCoordinate(root);
 		return coord;
@@ -415,7 +423,7 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 	 * @param coord lat/lon coordinate. coord.z will be set to the fetched elevation
 	 * @return block height (y); number of solid blocks to generate
 	 */
-	public int getBlockHeight(World world, Coordinate coord) throws DataUnavailableException{
+	public int getBlockHeight( Coordinate coord) throws DataUnavailableException{
 
 		// get elevation in m
 		Double elev  = elevationProvider.fetchElevation(coord);
@@ -431,7 +439,7 @@ public class EarthGen extends ChunkProviderOverworld {// implements Configurable
 		if( y == Double.NaN ) {
 			return defaultBlockHeight;
 		} else {
-			return (int) Math.floor(Math.min(y, world.getHeight()));
+			return (int) Math.floor(Math.min(y, WORLD_HEIGHT));
 		}
 	}
 

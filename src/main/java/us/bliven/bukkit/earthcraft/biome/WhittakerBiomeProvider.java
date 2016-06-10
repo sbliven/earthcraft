@@ -1,3 +1,4 @@
+package us.bliven.bukkit.earthcraft.biome;
 //package us.bliven.bukkit.earthcraft.gis;
 //
 //import java.util.LinkedHashMap;

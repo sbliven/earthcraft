@@ -1,8 +1,8 @@
-package us.bliven.bukkit.earthcraft.gis;
+package us.bliven.bukkit.earthcraft.biome;
 
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
-import us.bliven.bukkit.earthcraft.EarthGen;
+import us.bliven.bukkit.earthcraft.worldgen.EarthChunkProvider;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -14,5 +14,5 @@ public interface CoordBiomeProvider {
 	 * @param coord Location to get biomes
 	 * @return The Biome type
 	 */
-	public BiomeGenBase getBiome(EarthGen gen, World world, Coordinate coord);
+	public BiomeGenBase getBiome(EarthChunkProvider gen, World world, Coordinate coord);
 }

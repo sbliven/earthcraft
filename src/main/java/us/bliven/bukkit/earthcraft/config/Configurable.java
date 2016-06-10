@@ -1,4 +1,4 @@
-package us.bliven.bukkit.earthcraft;
+package us.bliven.bukkit.earthcraft.config;
 
 
 

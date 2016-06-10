@@ -13,5 +13,6 @@ public class Location extends BlockPos {
 	public Location(World world, double x, double y, double z) {
 		super(x,y,z);
 	}
+	
 
 }

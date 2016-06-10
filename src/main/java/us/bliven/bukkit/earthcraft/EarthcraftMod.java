@@ -10,24 +10,30 @@ import java.util.logging.Logger;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationRegistry;
 
+import net.minecraft.world.WorldType;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import us.bliven.bukkit.earthcraft.config.ConfigManager;
+import us.bliven.bukkit.earthcraft.worldgen.EarthChunkProvider;
+import us.bliven.bukkit.earthcraft.worldgen.EarthWorld;
 
 import com.sun.media.jai.imageioimpl.ImageReadWriteSpi;
 
-@Mod(modid = EarthcraftPlugin.MODID, version = EarthcraftPlugin.VERSION)
-public class EarthcraftPlugin {
+@Mod(modid = EarthcraftMod.MODID, version = EarthcraftMod.VERSION)
+public class EarthcraftMod {
     public static final String MODID = "earthcraft";
     public static final String VERSION = "0.1";
 
 	private Logger log = Logger.getLogger(MODID);
+    public static final WorldType EARTHCRAFT_WORLD = new EarthWorld("PYRAMID");
+
 	private ConfigManager config = null;
 //	private Map<String,Coordinate> landmarks = null;
 
 	// Create a new EarthGen for each world to allow configurability
-	private final Map<String,EarthGen> generators = new HashMap<String, EarthGen>();
+	private final Map<String,EarthChunkProvider> generators = new HashMap<String, EarthChunkProvider>();
 
 	// Permissions
 	static final String PERM_TP_OTHERS = "earthcraft.tp.others";
@@ -106,7 +112,7 @@ public class EarthcraftPlugin {
      */
     @SuppressWarnings("unused")
 	private void initJAIFromFile(String resource, OperationRegistry registry) {
-    	InputStream in = EarthcraftPlugin.class.getResourceAsStream(resource);
+    	InputStream in = EarthcraftMod.class.getResourceAsStream(resource);
     	if( in == null) {
     		log.warning("Error with JAI initialization. Unable to find "+resource);
     	} else {

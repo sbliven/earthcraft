@@ -1,4 +1,4 @@
-package us.bliven.bukkit.earthcraft;
+package us.bliven.bukkit.earthcraft.config;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraftforge.common.config.Configuration;
+import us.bliven.bukkit.earthcraft.EarthcraftMod;
 import us.bliven.bukkit.earthcraft.gis.ElevationProjection;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -22,16 +23,16 @@ import com.vividsolutions.jts.geom.Coordinate;
  */
 public class ConfigManager extends Configuration{
 
-	private EarthcraftPlugin plugin;
+	private EarthcraftMod plugin;
 
 	private static final Logger log = Logger.getLogger(ConfigManager.class.getName());
 	
-	public ConfigManager(EarthcraftPlugin plugin, File path) {
+	public ConfigManager(EarthcraftMod plugin, File path) {
 		super(path);
 		this.plugin=plugin;
 	}
 
-	public EarthcraftPlugin getPlugin() {
+	public EarthcraftMod getPlugin() {
 		return plugin;
 	}
 
